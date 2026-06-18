@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>财务人超市</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #f0f2f5;
+  color: #333;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1a3a6b 0%, #2c5aa0 100%);
+  color: #fff;
+  padding: 16px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header h1 .icon { font-size: 26px; }
+.header-sub { font-size: 13px; opacity: 0.8; }
+
+/* Tab Navigation */
+.tab-nav {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  gap: 0;
+  background: #fff;
+  border-bottom: 2px solid #e8e8e8;
+}
+.tab-btn {
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: #2c5aa0; }
+.tab-btn.active {
+  color: #2c5aa0;
+  border-bottom-color: #2c5aa0;
+}
+
+/* Tab Content */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Main Container */
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+/* Search Card */
+.search-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  margin-bottom: 20px;
+}
+.search-card h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1a3a6b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.search-group label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+.search-group input, .search-group select {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-group input:focus, .search-group select:focus {
+  border-color: #2c5aa0;
+  box-shadow: 0 0 0 2px rgba(44,90,160,0.15);
+}
+
+/* Stock selector wrapper */
+.stock-select-wrap {
+  position: relative;
+}
+.stock-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.stock-dropdown.show { display: block; }
+.stock-dropdown .item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #f5f5f5;
+}
+.stock-dropdown .item:hover { background: #f0f5ff; }
+.stock-dropdown .item .code { color: #999; font-size: 12px; }
+.stock-dropdown .no-result {
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+}
+
+/* Selected stocks tags */
+.stock-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.stock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #e8f0fe;
+  color: #2c5aa0;
+  border-radius: 14px;
+  font-size: 12px;
+}
+.stock-tag .remove {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.btn {
+  height: 42px;
+  padding: 0 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary { background: #2c5aa0; color: #fff; }
+.btn-primary:hover {
+  background: #1a3a6b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44,90,160,0.3);
+}
+.btn-secondary { background: #f0f2f5; color: #666; }
+.btn-secondary:hover { background: #e4e6eb; }
+
+/* Advanced options */
+.advanced-toggle {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #2c5aa0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+.advanced-toggle:hover { text-decoration: underline; }
+.advanced-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  display: none;
+}
+.advanced-panel.show { display: block; }
+.adv-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.adv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adv-group label { font-size: 12px; color: #999; }
+.adv-group input, .adv-group select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+.adv-group select { min-width: 140px; }
+.adv-group input { min-width: 180px; }
+.adv-group input:focus, .adv-group select:focus { border-color: #2c5aa0; }
+
+/* Stats bar */
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+.stats-info { font-size: 13px; color: #666; }
+.stats-info strong { color: #2c5aa0; font-weight: 600; }
+
+/* Results Table */
+.results-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.results-table th {
+  background: #f7f8fa;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 2px solid #e8e8e8;
+}
+.results-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+}
+.results-table tbody tr { transition: background 0.15s; }
+.results-table tbody tr:hover { background: #f7f9fc; }
+
+.law-name, .announce-title {
+  color: #1a3a6b;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.law-name:hover, .announce-title:hover {
+  color: #2c5aa0;
+  text-decoration: underline;
+}
+.law-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.status-modified { background: #fff7e6; color: #d48806; }
+.status-repealed { background: #fff1f0; color: #cf1322; }
+.highlight { color: #c00; font-weight: 600; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #333;
+}
+.page-btn:hover:not(.active):not(:disabled) { border-color: #2c5aa0; color: #2c5aa0; }
+.page-btn.active { background: #2c5aa0; color: #fff; border-color: #2c5aa0; }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Loading & Empty */
+.loading-state { text-align: center; padding: 60px 20px; color: #999; }
+.loading-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e8e8e8;
+  border-top-color: #2c5aa0;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 60px 20px; color: #999; }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+/* Detail Modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); z-index: 1000;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #fff; border-radius: 12px;
+  width: 100%; max-width: 900px; max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+.modal-header {
+  padding: 20px 24px; border-bottom: 1px solid #f0f0f0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { font-size: 17px; font-weight: 600; color: #1a3a6b; flex: 1; margin-right: 16px; }
+.modal-close {
+  width: 32px; height: 32px; border: none; background: #f0f2f5;
+  border-radius: 50%; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s; flex-shrink: 0;
+}
+.modal-close:hover { background: #e4e6eb; }
+.modal-body {
+  flex: 1; overflow-y: auto; padding: 24px;
+  font-size: 15px; line-height: 1.8; color: #333;
+}
+.modal-body .meta {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.modal-body .meta-item { font-size: 13px; color: #888; }
+.modal-body .meta-item span { color: #333; font-weight: 500; }
+.modal-body .content-wrap { word-break: break-all; }
+.modal-body a { color: #2c5aa0; word-break: break-all; }
+.modal-body p { margin-bottom: 10px; }
+.modal-loading { padding: 60px; text-align: center; color: #999; }
+
+/* Footer */
+.footer { text-align: center; padding: 20px; font-size: 12px; color: #bbb; }
+
+/* Fulltext search styles */
+.ft-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 24px;
+  margin-bottom: 12px;
+  border: 1px solid #eee;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.ft-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,0.08); border-color: #c8d4e8; }
+.ft-card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.ft-card-code {
+  display: inline-block;
+  background: #e8f0fe;
+  color: #2c5aa0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ft-card-name { font-size: 13px; color: #555; margin-right: 8px; white-space: nowrap; }
+.ft-card-date { font-size: 12px; color: #999; white-space: nowrap; margin-left: auto; }
+.ft-card-title {
+  font-size: 16px;
+  color: #1a3a6b;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.ft-card-title:hover { color: #2c5aa0; text-decoration: underline; }
+.ft-snippet {
+  background: #f7f8fa;
+  border-left: 3px solid #2c5aa0;
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+.ft-snippet em { color: #e2231a; font-weight: 600; font-style: normal; background: #fff3cd; padding: 0 2px; border-radius: 2px; }
+.ft-card-actions { display: flex; gap: 12px; margin-top: 10px; }
+.ft-card-actions a {
+  font-size: 12px;
+  color: #2c5aa0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ft-card-actions a:hover { text-decoration: underline; }
+.ft-modal-content { font-size: 14px; line-height: 1.9; color: #333; white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto; }
+.ft-modal-content em { color: #e2231a; font-weight: 600; font-style: normal; background: #fff3cd; }
+
+/* Fulltext inline display (like esnai posts-inline) */
+.ft-card-inline { padding: 16px 20px; cursor: default; }
+.ft-card-inline .ft-card-header { display: flex; align-items: center; gap: 10px; }
+.ft-fulltext-inline {
+  margin-top: 12px;
+  border-top: 1px dashed #e8e8e8;
+  padding-top: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+.ft-fulltext-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ft-fulltext-content {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #333;
+  word-break: break-word;
+  background: #fafafa;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border-left: 3px solid #2c5aa0;
+}
+
+/* ESNAI styles */
+.esnai-login-status { padding: 10px 16px; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
+.esnai-search-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.esnai-select { padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; background: #fff; cursor: pointer; min-width: 140px; }
+.esnai-select:focus { border-color: #2c5aa0; outline: none; }
+.esnai-card { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 10px; border: 1px solid #eee; transition: box-shadow 0.2s; cursor: pointer; }
+.esnai-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-color: #d0d8e8; }
+.esnai-card-title { font-size: 16px; color: #333; margin-bottom: 6px; line-height: 1.5; }
+.esnai-card-title:hover { color: #2c5aa0; }
+.esnai-card-meta { font-size: 13px; color: #999; display: flex; gap: 16px; flex-wrap: wrap; }
+.esnai-card-meta .tag { background: #f0f5ff; color: #2c5aa0; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.esnai-card-snippet { font-size: 13px; color: #666; margin-top: 6px; line-height: 1.5; max-height: 60px; overflow: hidden; }
+.esnai-article-content { font-size: 15px; line-height: 1.8; color: #333; white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow-y: auto; padding: 10px 0; }
+.esnai-article-content p { margin-bottom: 12px; }
+.esnai-info { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 6px; padding: 10px 16px; margin-bottom: 12px; font-size: 13px; color: #8c6d1f; }
+.esnai-search-card { padding: 14px 20px; }
+.esnai-card-content { font-size: 13px; color: #666; margin: 6px 0; line-height: 1.6; background: #fafafa; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #2c5aa0; }
+.esnai-posts-list { max-height: 65vh; overflow-y: auto; }
+.esnai-post { padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+.esnai-post:last-child { border-bottom: none; }
+.esnai-post-op { background: #fafafa; margin: -14px -20px 0; padding: 14px 20px; border-radius: 6px; border-bottom: 1px solid #eee; }
+.esnai-post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.esnai-post-author { font-weight: 600; color: #2c5aa0; font-size: 14px; }
+.esnai-post-date { font-size: 12px; color: #999; }
+.esnai-post-content { font-size: 14px; line-height: 1.8; color: #333; word-break: break-word; }
+
+/* Inline full-content display in search results */
+.esnai-search-card-inline { padding: 16px 20px; }
+.esnai-posts-inline {
+  margin-top: 12px;
+  border-top: 1px dashed #e8e8e8;
+  padding-top: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+.esnai-posts-inline .esnai-post { padding: 12px 0; }
+.esnai-posts-inline .esnai-post-op {
+  background: #f6faff;
+  margin: 0 -12px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border-left: 3px solid #2c5aa0;
+  border-bottom: 1px solid #e8e8e8;
+}
+.esnai-posts-inline .esnai-post-content { font-size: 13px; line-height: 1.7; }
+
+/* 12366 税务咨询 */
+.tax12366-info { background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 6px; padding: 10px 16px; margin-bottom: 16px; font-size: 13px; color: #0050b3; }
+.tax12366-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 16px; overflow: hidden; border: 1px solid #e8e8e8; }
+.tax12366-card-header { padding: 14px 20px 0; display: flex; align-items: flex-start; gap: 10px; }
+.tax12366-card-index { color: #999; font-size: 12px; flex-shrink: 0; padding-top: 2px; }
+.tax12366-card-title { font-size: 16px; font-weight: 600; color: #1a1a1a; line-height: 1.5; flex: 1; }
+.tax12366-card-title em.tax12366-hl { color:#e2231a; font-weight:700; font-style:normal; background:#fff3cd; padding:0 2px; border-radius:2px; }
+.tax12366-card-question { padding: 10px 20px; }
+.tax12366-section-label { font-size: 12px; color: #999; margin-bottom: 6px; }
+.tax12366-question-text { font-size: 14px; line-height: 1.8; color: #333; word-break: break-word; }
+.tax12366-question-text em.tax12366-hl { color:#e2231a; font-weight:700; font-style:normal; background:#fff3cd; padding:0 2px; border-radius:2px; }
+.tax12366-card-meta { padding: 8px 20px; font-size: 12px; color: #999; display: flex; gap: 16px; flex-wrap: wrap; border-top: 1px solid #f5f5f5; }
+.tax12366-reply-section { margin: 0 20px 16px; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 6px; padding: 14px 16px; }
+.tax12366-reply-header { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+.tax12366-reply-icon { font-size: 16px; }
+.tax12366-reply-org { font-size: 13px; font-weight: 600; color: #389e0d; }
+.tax12366-reply-time { font-size: 12px; color: #999; }
+.tax12366-reply-content { font-size: 14px; line-height: 1.8; color: #333; word-break: break-word; }
+.tax12366-reply-content em.tax12366-hl { color:#e2231a; font-weight:700; font-style:normal; background:#fff3cd; padding:0 2px; border-radius:2px; }
+.tax12366-no-reply { background: #fffbe6; border-color: #ffe58f; text-align: center; color: #8c6d1f; font-size: 13px; padding: 12px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .search-group input { min-width: 180px; }
+  .header h1 { font-size: 16px; }
+  .tab-btn { padding: 12px 16px; font-size: 14px; }
+  .results-table th:nth-child(4), .results-table td:nth-child(4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1><span class="icon">🛒</span>财务人超市</h1>
+    <span class="header-sub" id="headerSource">数据来源：中国证监会 &amp; 巨潮资讯网</span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="csrc">⚖️ 证监会法规</button>
+  <button class="tab-btn" data-tab="cninfo">📋 巨潮公告</button>
+  <button class="tab-btn" data-tab="fulltext">🔎 全文检索</button>
+  <button class="tab-btn" data-tab="esnai">📚 会计视野</button>
+  <button class="tab-btn" data-tab="tax12366">💼 税务咨询</button>
+</div>
+
+<!-- Tab 1: CSRC 法规 -->
+<div class="tab-content active" id="tab-csrc">
+<div class="container">
+  <div class="search-card">
+    <h2>🔍 法规检索</h2>
+    <div class="search-row">
+      <div class="search-group" style="flex:1;">
+        <label>关键词搜索</label>
+        <input type="text" id="keywordInput" placeholder="输入法规名称或关键词，如：证券、信息披露、期货..." autofocus>
+      </div>
+      <button class="btn btn-primary" onclick="csrcSearch(1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        搜索
+      </button>
+      <button class="btn btn-secondary" onclick="csrcReset()">清空</button>
+    </div>
+
+    <div class="advanced-toggle" onclick="toggleAdvanced('csrc')">
+      <span id="advArrowCSRC">▶</span> 高级搜索选项
+    </div>
+    <div class="advanced-panel" id="advancedPanelCSRC">
+      <div class="adv-row">
+        <div class="adv-group"><label>文号</label><input type="text" id="filenoInput" placeholder="如：证监会令第1号"></div>
+        <div class="adv-group"><label>发文单位</label><input type="text" id="pubOrgInput" placeholder="如：中国证监会"></div>
+        <div class="adv-group"><label>发布日期（起始）</label><input type="date" id="dateFromInput"></div>
+        <div class="adv-group"><label>发布日期（截止）</label><input type="date" id="dateThruInput"></div>
+      </div>
+      <div class="adv-row">
+        <div class="adv-group">
+          <label>效力状态</label>
+          <select id="statusSelect">
+            <option value="">全部</option>
+            <option value="0">已颁布未施行</option>
+            <option value="1">现行有效</option>
+            <option value="2">已被修改</option>
+            <option value="3">已被废止</option>
+          </select>
+        </div>
+        <div class="adv-group">
+          <label>查询精度</label>
+          <select id="likeSelect">
+            <option value="0">模糊查询</option>
+            <option value="1">精确查询</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="csrcStats" style="display:none;">
+    <div class="stats-info">共找到 <strong id="csrcTotal">0</strong> 条法规</div>
+  </div>
+
+  <div class="results-card" id="csrcResults">
+    <div class="empty-state" id="csrcEmpty">
+      <div class="icon">📋</div>
+      <p>输入关键词开始搜索法规</p>
+      <p style="font-size:12px;color:#bbb;margin-top:8px;">支持搜索：证券、期货、基金、信息披露、公司治理等</p>
+    </div>
+    <div id="csrcTable" style="display:none;">
+      <table class="results-table">
+        <thead><tr>
+          <th style="width:40px;">序号</th>
+          <th>法规名称</th>
+          <th style="width:180px;">文号</th>
+          <th style="width:160px;">发文单位</th>
+          <th style="width:100px;">发布日期</th>
+        </tr></thead>
+        <tbody id="csrcBody"></tbody>
+      </table>
+      <div class="pagination" id="csrcPagination"></div>
+    </div>
+    <div class="loading-state" id="csrcLoading" style="display:none;">
+      <div class="loading-spinner"></div><p>正在搜索...</p>
+    </div>
+  </div>
+
+  <div class="footer">数据来源：<a href="https://neris.csrc.gov.cn/falvfagui/" target="_blank" style="color:#bbb;">中国证监会·证券期货法规数据库系统</a></div>
+</div>
+</div>
+
+<!-- Tab 2: 巨潮公告 -->
+<div class="tab-content" id="tab-cninfo">
+<div class="container">
+  <div class="search-card">
+    <h2>📋 上市公司公告检索</h2>
+    <div class="search-row">
+      <div class="search-group" style="flex:1;min-width:280px;">
+        <label>关键词搜索</label>
+        <input type="text" id="cninfoKeyword" placeholder="输入公告关键词，如：年报、重组、分红、增持...">
+      </div>
+      <div class="search-group stock-select-wrap" style="flex:1;min-width:240px;">
+        <label>上市公司（可选，支持代码/名称/拼音搜索）</label>
+        <input type="text" id="stockInput" placeholder="输入股票代码或公司名称..." autocomplete="off">
+        <div class="stock-dropdown" id="stockDropdown"></div>
+      </div>
+      <button class="btn btn-primary" onclick="cninfoSearch(1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        搜索
+      </button>
+      <button class="btn btn-secondary" onclick="cninfoReset()">清空</button>
+    </div>
+    <div class="stock-tags" id="stockTags"></div>
+
+    <div class="advanced-toggle" onclick="toggleAdvanced('cninfo')">
+      <span id="advArrowCNINFO">▶</span> 高级筛选选项
+    </div>
+    <div class="advanced-panel" id="advancedPanelCNINFO">
+      <div class="adv-row">
+        <div class="adv-group">
+          <label>市场板块</label>
+          <select id="plateSelect">
+            <option value="">全部（沪深京）</option>
+            <option value="sz">深市主板</option>
+            <option value="szcy">创业板</option>
+            <option value="sh">沪市主板</option>
+            <option value="shkcp">科创板</option>
+            <option value="bj">北交所</option>
+          </select>
+        </div>
+        <div class="adv-group">
+          <label>公告类型</label>
+          <select id="categorySelect">
+            <option value="">全部类型</option>
+            <option value="category_ndbg_szsh">年报</option>
+            <option value="category_bndbg_szsh">半年报</option>
+            <option value="category_yjdbg_szsh">一季度报</option>
+            <option value="category_sjdbg_szsh">三季度报</option>
+            <option value="category_yjygjxz_szsh">业绩预告</option>
+            <option value="category_qyfpxzcs_szsh">权益分派</option>
+            <option value="category_dshgg_szsh">董事会</option>
+            <option value="category_jshgg_szsh">监事会</option>
+            <option value="category_gddh_szsh">股东大会</option>
+            <option value="category_rcjy_szsh">日常经营</option>
+            <option value="category_gszl_szsh">公司治理</option>
+            <option value="category_zj_szsh">中介报告</option>
+            <option value="category_sf_szsh">首发</option>
+            <option value="category_zf_szsh">增发</option>
+            <option value="category_gqjl_szsh">股权激励</option>
+            <option value="category_pg_szsh">配股</option>
+            <option value="category_jj_szsh">借壳</option>
+            <option value="category_gszq_szsh">公司债</option>
+            <option value="category_kzzq_szsh">可转债</option>
+            <option value="category_qtrz_szsh">其他融资</option>
+            <option value="category_gqbd_szsh">股权变动</option>
+            <option value="category_bcgz_szsh">补充更正</option>
+            <option value="category_cqdq_szsh">澄清致歉</option>
+            <option value="category_fxts_szsh">风险提示</option>
+            <option value="category_tbclts_szsh">特别处理</option>
+            <option value="category_tszlq_szsh">退市整理期</option>
+          </select>
+        </div>
+        <div class="adv-group">
+          <label>起始日期</label>
+          <input type="date" id="cninfoDateFrom">
+        </div>
+        <div class="adv-group">
+          <label>截止日期</label>
+          <input type="date" id="cninfoDateThru">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="cninfoStats" style="display:none;">
+    <div class="stats-info" id="cninfoStatsInfo">共找到 <strong id="cninfoTotal">0</strong> 条公告</div>
+  </div>
+
+  <div class="results-card" id="cninfoResults">
+    <div class="empty-state" id="cninfoEmpty">
+      <div class="icon">📋</div>
+      <p>输入关键词或选择上市公司开始搜索公告</p>
+      <p style="font-size:12px;color:#bbb;margin-top:8px;">可同时使用关键词和公司筛选，支持模糊搜索</p>
+    </div>
+    <div id="cninfoTable" style="display:none;">
+      <table class="results-table">
+        <thead><tr>
+          <th style="width:40px;">序号</th>
+          <th style="width:100px;">股票代码</th>
+          <th style="width:130px;">公司名称</th>
+          <th>公告标题</th>
+          <th style="width:110px;">公告日期</th>
+        </tr></thead>
+        <tbody id="cninfoBody"></tbody>
+      </table>
+      <div class="pagination" id="cninfoPagination"></div>
+    </div>
+    <div class="loading-state" id="cninfoLoading" style="display:none;">
+      <div class="loading-spinner"></div><p>正在搜索...</p>
+    </div>
+  </div>
+
+  <div class="footer">数据来源：<a href="https://www.cninfo.com.cn/" target="_blank" style="color:#bbb;">巨潮资讯网</a></div>
+</div>
+</div>
+
+<!-- ==================== Fulltext: 全文检索 ==================== -->
+<div class="tab-content" id="tab-fulltext">
+<div class="container">
+  <div class="search-card">
+    <h2>🔎 公告全文检索</h2>
+    <p style="font-size:13px;color:#999;margin-bottom:16px;">搜索公告正文内容，匹配关键词所在的公告段落，支持查看公告全文</p>
+    <div class="search-row">
+      <div class="search-group" style="flex:1;min-width:280px;">
+        <label>关键词（搜索公告正文）</label>
+        <input type="text" id="ftKeyword" placeholder="输入关键词，如：担保、关联交易、回购、减持..." onkeydown="if(event.key==='Enter') ftSearch(1)" autofocus>
+      </div>
+      <div class="search-group" style="min-width:180px;">
+        <label>股票代码（可选）</label>
+        <input type="text" id="ftStock" placeholder="如：000001">
+      </div>
+      <button class="btn btn-primary" onclick="ftSearch(1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        搜索
+      </button>
+      <button class="btn btn-secondary" onclick="ftReset()">清空</button>
+    </div>
+
+    <div class="advanced-toggle" onclick="toggleAdvanced('ft')">
+      <span id="advArrowFT">▶</span> 日期范围筛选
+    </div>
+    <div class="advanced-panel" id="advancedPanelFT">
+      <div class="adv-row">
+        <div class="adv-group"><label>起始日期</label><input type="date" id="ftDateFrom"></div>
+        <div class="adv-group"><label>截止日期</label><input type="date" id="ftDateThru"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="ftStats" style="display:none;">
+    <div class="stats-info" id="ftStatsInfo">共找到 <strong id="ftTotal">0</strong> 条结果</div>
+  </div>
+
+  <div id="ftResults">
+    <div class="empty-state" id="ftEmpty">
+      <div class="icon">🔎</div>
+      <p>输入关键词搜索公告正文内容</p>
+      <p style="font-size:12px;color:#bbb;margin-top:8px;">支持搜索公告正文中的关键词，查看匹配段落和完整公告</p>
+    </div>
+    <div class="loading-state" id="ftLoading" style="display:none;">
+      <div class="loading-spinner"></div><p>正在搜索公告正文...</p>
+    </div>
+    <div id="ftList" style="display:none;"></div>
+    <div class="pagination" id="ftPagination"></div>
+  </div>
+
+  <div class="footer">数据来源：<a href="https://www.cninfo.com.cn/new/fulltextSearch" target="_blank" style="color:#bbb;">巨潮资讯网·全文检索</a></div>
+</div>
+</div>
+
+<!-- ==================== ESNAI: 会计视野 ==================== -->
+<div class="tab-content" id="tab-esnai">
+<div class="search-panel">
+
+  <!-- Login Status -->
+  <div id="esnaiLoginStatus" class="esnai-login-status"></div>
+
+  <!-- Search Bar -->
+  <div class="search-bar esnai-search-bar">
+    <select id="esnaiForumSelect" class="esnai-select">
+      <option value="7">CPA业务探讨</option>
+      <option value="9">财会业务探讨</option>
+      <option value="10">税务业务探讨</option>
+      <option value="4">CPA之声</option>
+      <option value="16">CPA考试</option>
+      <option value="44">职业规划</option>
+      <option value="134">视野活动</option>
+      <option value="43">灌水闲聊</option>
+    </select>
+    <input type="text" id="esnaiKeyword" class="keyword-input" placeholder="输入关键词搜索帖子正文和回复内容..." onkeydown="if(event.key==='Enter') esnaiSearch(1)">
+    <button class="search-btn" onclick="esnaiSearch(1)">🔍 搜索</button>
+  </div>
+
+  <!-- Results -->
+  <div id="esnaiResultArea">
+    <div class="empty-state" id="esnaiEmptyState">
+      <p>输入关键词搜索中国会计视野论坛的<strong>正文和回复内容</strong></p>
+      <p style="font-size:13px;color:#999;margin-top:8px;">搜索结果直接显示完整主帖和回复内容，无需点击查看 · 服务端自动登录后可全文检索</p>
+    </div>
+    <div class="loading-state" id="esnaiLoading" style="display:none;">
+      <div class="loading-spinner"></div><p>正在加载...</p>
+    </div>
+    <div id="esnaiResults" style="display:none;"></div>
+    <div class="pagination" id="esnaiPagination"></div>
+  </div>
+
+  <div class="footer">
+    数据来源：<a href="https://www.esnai.cn/" target="_blank" style="color:#bbb;">中国会计视野</a> ·
+    <a href="https://bbs.esnai.cn/" target="_blank" style="color:#bbb;">视野论坛</a>
+  </div>
+</div>
+</div>
+
+<!-- ==================== 12366: 税务咨询 ==================== -->
+<div class="tab-content" id="tab-tax12366">
+<div class="container">
+  <!-- Search Bar -->
+  <div class="search-card">
+    <h2>💼 税务咨询检索</h2>
+    <p style="font-size:13px;color:#999;margin-bottom:16px;">搜索国家税务总局12366纳税服务平台留言及答复，关键词匹配问题内容和答复内容</p>
+    <div class="search-row">
+      <div class="search-group" style="flex:1;">
+        <label>关键词</label>
+        <input type="text" id="tax12366Keyword" class="keyword-input" placeholder="输入关键词搜索税务咨询留言..." onkeydown="if(event.key==='Enter') tax12366Search(1)">
+      </div>
+      <button class="search-btn" onclick="tax12366Search(1)">🔍 搜索</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="tax12366Loading" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p>正在搜索12366纳税服务平台，获取答复内容...</p>
+  </div>
+
+  <!-- Results -->
+  <div id="tax12366ResultArea">
+    <div class="empty-state" id="tax12366EmptyState">
+      <p>输入关键词搜索12366纳税服务平台的<strong>税务咨询留言和官方答复</strong></p>
+      <p style="font-size:13px;color:#999;margin-top:8px;">搜索结果直接显示完整问题内容和官方答复，关键词高亮显示</p>
+    </div>
+    <div id="tax12366Results" style="display:none;"></div>
+    <div id="tax12366Pagination" style="display:none;"></div>
+  </div>
+
+  <div class="footer">
+    数据来源：<a href="https://12366.chinatax.gov.cn/nszx/onlinemessage/main" target="_blank" style="color:#bbb;">国家税务总局12366纳税服务平台</a>
+  </div>
+</div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modalTitle">详情</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="modal-loading"><div class="loading-spinner"></div><p>加载中...</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== TAB SWITCHING ====================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+    document.getElementById('headerSource').textContent =
+      this.dataset.tab === 'csrc' ? '数据来源：中国证监会' :
+      this.dataset.tab === 'cninfo' ? '数据来源：巨潮资讯网' :
+      this.dataset.tab === 'fulltext' ? '数据来源：巨潮资讯网·全文检索' :
+      this.dataset.tab === 'esnai' ? '数据来源：中国会计视野' :
+      '数据来源：国家税务总局12366纳税服务平台';
+  });
+});
+
+// ==================== CSRC: 证监会法规 ====================
+let csrcPage = 1, csrcTotalPages = 1, csrcKeyword = '', csrcParams = {};
+
+document.getElementById('keywordInput').addEventListener('keydown', e => { if (e.key === 'Enter') csrcSearch(1); });
+
+function csrcBuildParams(pageNo) {
+  csrcKeyword = document.getElementById('keywordInput').value.trim();
+  const params = { pageNo: pageNo || 1 };
+  let lawName = '';
+  if (csrcKeyword) {
+    const escaped = csrcKeyword.replace(/[!@#$&%^*\\\[\]]/g, '').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    if (escaped) {
+      const isLike = document.getElementById('likeSelect').value;
+      lawName = 'secFutrsLawName:' + (isLike === '0' ? '*' + escaped + '*' : escaped);
+    }
+  }
+  params.secFutrsLawName = lawName;
+  if (csrcKeyword) {
+    const escaped = csrcKeyword.replace(/[!@#$&%^*\\\[\]]/g, '').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    if (escaped) params.body = '"' + escaped + '"';
+  }
+  const fileno = document.getElementById('filenoInput').value.trim();
+  if (fileno) params.fileno = fileno;
+  const pubOrg = document.getElementById('pubOrgInput').value.trim();
+  if (pubOrg) params.lawPubOrgName = pubOrg;
+  const dateFrom = document.getElementById('dateFromInput').value;
+  if (dateFrom) params.pubDate_from = dateFrom;
+  const dateThru = document.getElementById('dateThruInput').value;
+  if (dateThru) params.pubDate_thru = dateThru;
+  const status = document.getElementById('statusSelect').value;
+  if (status !== '') params.lawAthrtyStsCdeList = status;
+  params.isLike = document.getElementById('likeSelect').value;
+  params.nbr = '3';
+  csrcParams = params;
+  return Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+}
+
+async function csrcSearch(pageNo) {
+  const kw = document.getElementById('keywordInput').value.trim();
+  if (!kw && !document.getElementById('filenoInput').value.trim() && !document.getElementById('pubOrgInput').value.trim()) return;
+  csrcPage = pageNo;
+  document.getElementById('csrcEmpty').style.display = 'none';
+  document.getElementById('csrcTable').style.display = 'none';
+  document.getElementById('csrcLoading').style.display = 'block';
+  try {
+    const resp = await fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: csrcBuildParams(pageNo) });
+    const result = await resp.json();
+    document.getElementById('csrcLoading').style.display = 'none';
+    if (result.pageUtil && result.pageUtil.rowCount > 0) {
+      csrcRender(result);
+    } else {
+      document.getElementById('csrcEmpty').style.display = 'block';
+      document.querySelector('#csrcEmpty p').textContent = '未找到匹配的法规，请尝试其他关键词';
+    }
+  } catch (e) {
+    document.getElementById('csrcLoading').style.display = 'none';
+    document.getElementById('csrcEmpty').style.display = 'block';
+    document.querySelector('#csrcEmpty p').textContent = '网络错误，请检查服务是否启动';
+  }
+}
+
+function csrcRender(result) {
+  const list = result.pageUtil.pageList || [];
+  const total = result.pageUtil.rowCount || 0;
+  csrcTotalPages = Math.ceil(total / 20);
+  document.getElementById('csrcStats').style.display = 'flex';
+  document.getElementById('csrcTotal').textContent = total;
+  if (!list.length) { document.getElementById('csrcEmpty').style.display = 'block'; document.getElementById('csrcTable').style.display = 'none'; return; }
+  document.getElementById('csrcEmpty').style.display = 'none';
+  document.getElementById('csrcTable').style.display = 'block';
+  document.getElementById('csrcBody').innerHTML = list.map((item, i) => {
+    const statusHtml = ['', '', '<span class="law-status status-modified">已修改</span>', '<span class="law-status status-repealed">已废止</span>'][parseInt(item.lawAthrtyStsCde)||0] || '';
+    return '<tr><td>' + ((csrcPage-1)*20+i+1) + '</td>' +
+      '<td><span class="law-name" onclick="csrcDetail(\'' + item.secFutrsLawId + '\')">' + escapeHtml(item.secFutrsLawName || '') + '</span>' + statusHtml + '</td>' +
+      '<td>' + escapeHtml(item.fileno || '-') + '</td><td>' + escapeHtml(item.lawPubOrgName || '-') + '</td>' +
+      '<td>' + (item.pubDate ? new Date(item.pubDate).format('yyyy-MM-dd') : '-') + '</td></tr>';
+  }).join('');
+  csrcRenderPages();
+}
+
+function csrcRenderPages() {
+  let html = '';
+  html += '<button class="page-btn" onclick="csrcSearch(1)"' + (csrcPage <= 1 ? ' disabled' : '') + '>首页</button>';
+  html += '<button class="page-btn" onclick="csrcSearch(' + (csrcPage - 1) + ')"' + (csrcPage <= 1 ? ' disabled' : '') + '>上一页</button>';
+  for (let i = Math.max(1, csrcPage - 2); i <= Math.min(csrcTotalPages, csrcPage + 2); i++) {
+    html += '<button class="page-btn' + (i === csrcPage ? ' active' : '') + '" onclick="csrcSearch(' + i + ')">' + i + '</button>';
+  }
+  html += '<button class="page-btn" onclick="csrcSearch(' + (csrcPage + 1) + ')"' + (csrcPage >= csrcTotalPages ? ' disabled' : '') + '>下一页</button>';
+  html += '<button class="page-btn" onclick="csrcSearch(' + csrcTotalPages + ')"' + (csrcPage >= csrcTotalPages ? ' disabled' : '') + '>末页</button>';
+  document.getElementById('csrcPagination').innerHTML = html;
+}
+
+async function csrcDetail(id) {
+  const overlay = document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = '法规详情';
+  overlay.classList.add('show');
+  document.getElementById('modalBody').innerHTML = '<div class="modal-loading"><div class="loading-spinner"></div><p>加载中...</p></div>';
+  try {
+    const kw = csrcKeyword.replace(/[!@#$&%^*\\\[\]()]/g, '');
+    const resp = await fetch('/api/detail?navbarId=3&secFutrsLawId=' + id + '&body=' + encodeURIComponent(kw));
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    let content = '';
+    const mc = doc.querySelector('.mainbody, .content, #content, article, .article');
+    if (mc) { content = mc.innerHTML; }
+    else {
+      const be = doc.querySelector('body');
+      if (be) { be.querySelectorAll('script, style, link').forEach(el => el.remove()); content = be.innerHTML; }
+    }
+    const titleEl = doc.querySelector('h1, h2, h3, .title');
+    document.getElementById('modalTitle').textContent = titleEl ? titleEl.textContent.trim() : '法规详情';
+    document.getElementById('modalBody').innerHTML = content || '<p>暂无详细内容，请前往<a href="https://neris.csrc.gov.cn/falvfagui/rdqsHeader/mainbody?navbarId=3&secFutrsLawId=' + id + '" target="_blank">原文链接</a>查看。</p>';
+  } catch (e) {
+    document.getElementById('modalBody').innerHTML = '<p>加载失败，请前往<a href="https://neris.csrc.gov.cn/falvfagui/rdqsHeader/mainbody?navbarId=3&secFutrsLawId=' + id + '" target="_blank">原文链接</a>查看。</p>';
+  }
+}
+
+function csrcReset() {
+  ['keywordInput','filenoInput','pubOrgInput','dateFromInput','dateThruInput'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('statusSelect').value = '';
+  document.getElementById('likeSelect').value = '0';
+  document.getElementById('csrcStats').style.display = 'none';
+  document.getElementById('csrcTable').style.display = 'none';
+  document.getElementById('csrcEmpty').style.display = 'block';
+  document.querySelector('#csrcEmpty p').textContent = '输入关键词开始搜索法规';
+}
+
+// ==================== CNINFO: 巨潮公告 ====================
+let cninfoPage = 1, cninfoTotalPages = 1, cninfoStockList = [], cninfoCheckedStocks = [];
+
+// Load stock list on page init
+(async function loadStockList() {
+  try {
+    const resp = await fetch('/api/cninfo/stocks');
+    const data = await resp.json();
+    cninfoStockList = data.stockList || [];
+    console.log('Loaded', cninfoStockList.length, 'stocks');
+  } catch(e) { console.error('Stock list load failed:', e); }
+})();
+
+// Stock search autocomplete
+let stockSearchTimer;
+document.getElementById('stockInput').addEventListener('input', function() {
+  clearTimeout(stockSearchTimer);
+  const q = this.value.trim();
+  if (!q) { document.getElementById('stockDropdown').classList.remove('show'); return; }
+  stockSearchTimer = setTimeout(() => {
+    // Local search first (faster)
+    let results = [];
+    if (cninfoStockList.length > 0) {
+      const lq = q.toUpperCase();
+      results = cninfoStockList.filter(s =>
+        s.code.indexOf(lq) === 0 || (s.zwjc && s.zwjc.indexOf(q) >= 0) || (s.pinyin && s.pinyin.toUpperCase().indexOf(lq) >= 0)
+      ).slice(0, 10);
+    }
+    if (results.length === 0) {
+      // Remote search fallback
+      fetch('/api/cninfo/stock-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'keyWord=' + encodeURIComponent(q) + '&maxNum=10&plate='
+      }).then(r => r.json()).then(data => {
+        if (Array.isArray(data)) { results = data; renderStockDropdown(results); }
+      });
+      return;
+    }
+    renderStockDropdown(results);
+  }, 200);
+});
+
+function renderStockDropdown(results) {
+  const dd = document.getElementById('stockDropdown');
+  if (!results.length) {
+    dd.innerHTML = '<div class="no-result">未找到匹配的上市公司</div>';
+  } else {
+    dd.innerHTML = results.map(s => 
+      '<div class="item" onclick="selectStock(\'' + s.code + '\',\'' + (s.zwjc || '').replace(/'/g, "\\'") + '\',\'' + (s.orgId || '') + '\')">' +
+      '<span>' + (s.zwjc || s.code) + '</span><span class="code">' + s.code + '</span></div>'
+    ).join('');
+  }
+  dd.classList.add('show');
+}
+
+function selectStock(code, name, orgId) {
+  if (!cninfoCheckedStocks.find(s => s.code === code)) {
+    cninfoCheckedStocks.push({ code, name, orgId });
+    renderStockTags();
+  }
+  document.getElementById('stockInput').value = '';
+  document.getElementById('stockDropdown').classList.remove('show');
+}
+
+function removeStock(code) {
+  cninfoCheckedStocks = cninfoCheckedStocks.filter(s => s.code !== code);
+  renderStockTags();
+}
+
+function renderStockTags() {
+  document.getElementById('stockTags').innerHTML = cninfoCheckedStocks.map(s =>
+    '<span class="stock-tag">' + s.name + '(' + s.code + ')<span class="remove" onclick="removeStock(\'' + s.code + '\')">&times;</span></span>'
+  ).join('');
+}
+
+// Hide dropdown on click outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.stock-select-wrap')) document.getElementById('stockDropdown').classList.remove('show');
+});
+
+document.getElementById('cninfoKeyword').addEventListener('keydown', e => { if (e.key === 'Enter') cninfoSearch(1); });
+
+async function cninfoSearch(pageNo) {
+  const kw = document.getElementById('cninfoKeyword').value.trim();
+  if (!kw && !cninfoCheckedStocks.length) return;
+  cninfoPage = pageNo;
+  document.getElementById('cninfoEmpty').style.display = 'none';
+  document.getElementById('cninfoTable').style.display = 'none';
+  document.getElementById('cninfoLoading').style.display = 'block';
+
+  const params = {
+    pageNum: pageNo || 1,
+    pageSize: 20,
+    column: 'szse_latest',
+    tabName: 'fulltext',
+    plate: document.getElementById('plateSelect').value || '',
+    stock: cninfoCheckedStocks.map(s => s.code + ',' + s.orgId).join(';'),
+    searchkey: kw,
+    secid: '',
+    category: document.getElementById('categorySelect').value || '',
+    trade: '',
+    seDate: [document.getElementById('cninfoDateFrom').value, document.getElementById('cninfoDateThru').value].filter(Boolean).join('~'),
+    sortName: '',
+    sortType: '',
+    isHLtitle: true
+  };
+
+  try {
+    const resp = await fetch('/api/cninfo/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&')
+    });
+    const result = await resp.json();
+    document.getElementById('cninfoLoading').style.display = 'none';
+    if (result.announcements && result.announcements.length > 0) {
+      cninfoRender(result);
+    } else {
+      document.getElementById('cninfoEmpty').style.display = 'block';
+      document.querySelector('#cninfoEmpty p').textContent = '未找到匹配的公告，请尝试其他关键词或公司';
+    }
+  } catch (e) {
+    document.getElementById('cninfoLoading').style.display = 'none';
+    document.getElementById('cninfoEmpty').style.display = 'block';
+    document.querySelector('#cninfoEmpty p').textContent = '网络错误，请检查服务是否启动';
+  }
+}
+
+function cninfoRender(result) {
+  const list = result.announcements || [];
+  const total = result.totalAnnouncement || 0;
+  cninfoTotalPages = Math.min(Math.ceil((result.totalRecordNum || total) / 20), 100);
+  document.getElementById('cninfoStats').style.display = 'flex';
+  document.getElementById('cninfoTotal').textContent = total;
+  document.getElementById('cninfoStatsInfo').innerHTML = '共找到 <strong>' + total + '</strong> 条公告';
+  if (!list.length) { document.getElementById('cninfoEmpty').style.display = 'block'; document.getElementById('cninfoTable').style.display = 'none'; return; }
+  document.getElementById('cninfoEmpty').style.display = 'none';
+  document.getElementById('cninfoTable').style.display = 'block';
+  document.getElementById('cninfoBody').innerHTML = list.map((item, i) => {
+    const time = item.announcementTime ? new Date(item.announcementTime).format('yyyy-MM-dd') : '-';
+    const title = item.announcementTitle || '';
+    // Clean highlight tags for display
+    const cleanTitle = title.replace(/<\/?em>/g, '');
+    return '<tr><td>' + ((cninfoPage-1)*20+i+1) + '</td>' +
+      '<td>' + (item.secCode || '-') + '</td>' +
+      '<td>' + (item.secName || '-') + '</td>' +
+      '<td><span class="announce-title" onclick="cninfoDetail(\'' + (item.stockCode || item.secCode || '') + '\',\'' + item.announcementId + '\',\'' + (item.orgId || '') + '\',\'' + time + '\')">' + cleanTitle + '</span></td>' +
+      '<td>' + time + '</td></tr>';
+  }).join('');
+  cninfoRenderPages();
+}
+
+function cninfoRenderPages() {
+  let html = '';
+  html += '<button class="page-btn" onclick="cninfoSearch(1)"' + (cninfoPage <= 1 ? ' disabled' : '') + '>首页</button>';
+  html += '<button class="page-btn" onclick="cninfoSearch(' + (cninfoPage - 1) + ')"' + (cninfoPage <= 1 ? ' disabled' : '') + '>上一页</button>';
+  for (let i = Math.max(1, cninfoPage - 2); i <= Math.min(cninfoTotalPages, cninfoPage + 2); i++) {
+    html += '<button class="page-btn' + (i === cninfoPage ? ' active' : '') + '" onclick="cninfoSearch(' + i + ')">' + i + '</button>';
+  }
+  html += '<button class="page-btn" onclick="cninfoSearch(' + (cninfoPage + 1) + ')"' + (cninfoPage >= cninfoTotalPages ? ' disabled' : '') + '>下一页</button>';
+  html += '<button class="page-btn" onclick="cninfoSearch(' + cninfoTotalPages + ')"' + (cninfoPage >= cninfoTotalPages ? ' disabled' : '') + '>末页</button>';
+  document.getElementById('cninfoPagination').innerHTML = html;
+}
+
+function cninfoDetail(stockCode, announcementId, orgId, time) {
+  const url = 'https://www.cninfo.com.cn/new/disclosure/detail?stockCode=' + stockCode + '&announcementId=' + announcementId + '&orgId=' + orgId + '&announcementTime=' + time;
+  window.open(url, '_blank');
+}
+
+function cninfoReset() {
+  document.getElementById('cninfoKeyword').value = '';
+  document.getElementById('stockInput').value = '';
+  document.getElementById('plateSelect').value = '';
+  document.getElementById('categorySelect').value = '';
+  document.getElementById('cninfoDateFrom').value = '';
+  document.getElementById('cninfoDateThru').value = '';
+  cninfoCheckedStocks = [];
+  renderStockTags();
+  document.getElementById('cninfoStats').style.display = 'none';
+  document.getElementById('cninfoTable').style.display = 'none';
+  document.getElementById('cninfoEmpty').style.display = 'block';
+  document.querySelector('#cninfoEmpty p').textContent = '输入关键词或选择上市公司开始搜索公告';
+}
+
+// ==================== Shared ====================
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+Date.prototype.format = function(format) {
+  const o = { 'M+': this.getMonth()+1, 'd+': this.getDate(), 'h+': this.getHours(), 'm+': this.getMinutes(), 's+': this.getSeconds(), 'S': this.getMilliseconds() };
+  if (/(y+)/.test(format)) format = format.replace(RegExp.$1, (this.getFullYear()+'').substr(4 - RegExp.$1.length));
+  for (let k in o) {
+    if (new RegExp('('+k+')').test(format)) format = format.replace(RegExp.$1, RegExp.$1.length === 1 ? o[k] : ('00'+o[k]).substr((''+o[k]).length));
+  }
+  return format;
+};
+
+// ==================== Fulltext: 全文检索 ====================
+let ftPage = 1, ftTotalPages = 1, ftKeyword = '';
+
+function toggleAdvanced(type) {
+  let panelId, arrowId;
+  if (type === 'csrc') { panelId = 'advancedPanelCSRC'; arrowId = 'advArrowCSRC'; }
+  else if (type === 'cninfo') { panelId = 'advancedPanelCNINFO'; arrowId = 'advArrowCNINFO'; }
+  else if (type === 'ft') { panelId = 'advancedPanelFT'; arrowId = 'advArrowFT'; }
+  if (!panelId) return;
+  const panel = document.getElementById(panelId);
+  const arrow = document.getElementById(arrowId);
+  panel.classList.toggle('show');
+  arrow.textContent = panel.classList.contains('show') ? '▼' : '▶';
+}
+
+async function ftSearch(pageNo) {
+  const kw = document.getElementById('ftKeyword').value.trim();
+  if (!kw) return;
+  ftPage = pageNo;
+  ftKeyword = kw;
+  document.getElementById('ftEmpty').style.display = 'none';
+  document.getElementById('ftList').style.display = 'none';
+  document.getElementById('ftPagination').innerHTML = '';
+  document.getElementById('ftLoading').style.display = 'block';
+
+  const params = new URLSearchParams({
+    searchkey: kw,
+    pageNum: pageNo || 1,
+    isfulltext: 'true',
+    sortName: 'nothing',
+    sortType: 'desc',
+  });
+  const stock = document.getElementById('ftStock').value.trim();
+  if (stock) params.set('stock', stock);
+  const sdate = document.getElementById('ftDateFrom').value;
+  if (sdate) params.set('sdate', sdate);
+  const edate = document.getElementById('ftDateThru').value;
+  if (edate) params.set('edate', edate);
+
+  try {
+    const resp = await fetch('/api/cninfo/fulltext?' + params.toString());
+    const result = await resp.json();
+    document.getElementById('ftLoading').style.display = 'none';
+    if (result.announcements && result.announcements.length > 0) {
+      ftRender(result);
+    } else {
+      document.getElementById('ftEmpty').style.display = 'block';
+      document.querySelector('#ftEmpty p').textContent = '未找到匹配的公告，请尝试其他关键词';
+    }
+  } catch (e) {
+    document.getElementById('ftLoading').style.display = 'none';
+    document.getElementById('ftEmpty').style.display = 'block';
+    document.querySelector('#ftEmpty p').textContent = '网络错误，请检查服务是否启动';
+  }
+}
+
+function ftRender(result) {
+  const list = result.announcements || [];
+  const total = result.totalRecordNum || 0;
+  ftTotalPages = Math.min(result.totalpages || Math.ceil(total / 10), 100);
+
+  document.getElementById('ftStats').style.display = 'flex';
+  document.getElementById('ftTotal').textContent = total.toLocaleString();
+  document.getElementById('ftStatsInfo').innerHTML = '共找到 <strong>' + total.toLocaleString() + '</strong> 条公告（第 ' + ftPage + '/' + ftTotalPages + ' 页）';
+
+  document.getElementById('ftEmpty').style.display = 'none';
+  document.getElementById('ftList').style.display = 'block';
+
+  document.getElementById('ftList').innerHTML = list.map((item, i) => {
+    const time = item.announcementTime ? new Date(item.announcementTime).format('yyyy-MM-dd') : '-';
+    const title = item.announcementTitle || '';
+    const snippet = item.announcementContent || '';
+    const secCode = item.secCode || '-';
+    const secName = item.secName || '-';
+    const annId = item.announcementId || '';
+    const adjunctUrl = item.adjunctUrl || '';
+    const fullText = item.fullText || '';
+    const pdfPages = item.pdfPages || 0;
+
+    // Build PDF link
+    const pdfUrl = adjunctUrl ? 'http://static.cninfo.com.cn/' + adjunctUrl : '';
+    // Build detail link
+    const detailUrl = 'https://www.cninfo.com.cn/new/disclosure/detail?stockCode=' + secCode + '&announcementId=' + annId + '&orgId=' + (item.orgId || '');
+
+    // Search snippet (from cninfo API, has <em> highlights)
+    const snippetHtml = snippet ? '<div class="ft-snippet">匹配片段：' + snippet + '</div>' : '';
+
+    // Full PDF content inline (like esnai posts-inline)
+    let fullTextHtml = '';
+    if (fullText) {
+      let content = escapeHtml(fullText);
+      // Highlight keyword in full text
+      const kw = ftKeyword;
+      if (kw && content) {
+        const regex = new RegExp('(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        content = content.replace(regex, '<em style="color:#f5222d;font-style:normal;font-weight:600;background:#fff1f0;">$1</em>');
+      }
+      content = content.replace(/\n/g, '<br>');
+      // Truncate if too long
+      const maxLen = 8000;
+      let displayContent = content;
+      let truncationNote = '';
+      if (content.length > maxLen) {
+        displayContent = content.substring(0, maxLen) + '...';
+        truncationNote = '<div style="text-align:center;padding:8px;color:#999;font-size:12px;">内容较长已截断，<a href="' + pdfUrl + '" target="_blank" style="color:#2c5aa0;">下载完整PDF查看 ↗</a></div>';
+      }
+      fullTextHtml = '<div class="ft-fulltext-inline">' +
+        '<div class="ft-fulltext-header"><span class="tag" style="background:#e6f7ff;color:#1890ff;">公告正文</span>' +
+        (pdfPages > 0 ? '<span style="color:#999;font-size:12px;">共 ' + pdfPages + ' 页</span>' : '') + '</div>' +
+        '<div class="ft-fulltext-content">' + displayContent + '</div>' +
+        truncationNote +
+        '</div>';
+    } else if (i < 5) {
+      fullTextHtml = '<div style="padding:12px;color:#999;font-size:13px;text-align:center;background:#fafafa;border-radius:6px;">正文内容加载失败' +
+        (pdfUrl ? '，<a href="' + pdfUrl + '" target="_blank" style="color:#2c5aa0;">下载PDF查看 ↗</a>' : '') + '</div>';
+    } else {
+      fullTextHtml = '<div style="padding:12px;color:#999;font-size:13px;text-align:center;background:#fafafa;border-radius:6px;">仅前5条结果自动展开正文，<a href="' + detailUrl + '" target="_blank" style="color:#2c5aa0;">查看详情 ↗</a></div>';
+    }
+
+    return '<div class="ft-card ft-card-inline">' +
+      '<div class="ft-card-header">' +
+        '<span class="ft-card-code">' + secCode + '</span>' +
+        '<span class="ft-card-name">' + escapeHtml(secName) + '</span>' +
+        '<span class="ft-card-date">' + time + '</span>' +
+        '<a href="' + detailUrl + '" target="_blank" style="color:#2c5aa0;margin-left:auto;font-size:13px;">查看详情 ↗</a>' +
+      '</div>' +
+      '<div class="ft-card-title">' + title + '</div>' +
+      snippetHtml +
+      fullTextHtml +
+      '<div class="ft-card-actions">' +
+        (pdfUrl ? '<a href="' + pdfUrl + '" target="_blank">📋 下载PDF</a>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  ftRenderPages();
+}
+
+function ftRenderPages() {
+  let html = '';
+  html += '<button class="page-btn" onclick="ftSearch(1)"' + (ftPage <= 1 ? ' disabled' : '') + '>首页</button>';
+  html += '<button class="page-btn" onclick="ftSearch(' + (ftPage - 1) + ')"' + (ftPage <= 1 ? ' disabled' : '') + '>上一页</button>';
+  for (let i = Math.max(1, ftPage - 2); i <= Math.min(ftTotalPages, ftPage + 2); i++) {
+    html += '<button class="page-btn' + (i === ftPage ? ' active' : '') + '" onclick="ftSearch(' + i + ')">' + i + '</button>';
+  }
+  html += '<button class="page-btn" onclick="ftSearch(' + (ftPage + 1) + ')"' + (ftPage >= ftTotalPages ? ' disabled' : '') + '>下一页</button>';
+  html += '<button class="page-btn" onclick="ftSearch(' + ftTotalPages + ')"' + (ftPage >= ftTotalPages ? ' disabled' : '') + '>末页</button>';
+  document.getElementById('ftPagination').innerHTML = html;
+}
+
+async function ftViewDetail(secCode, annId, orgId) {
+  // Open the cninfo detail page in a new tab
+  const detailUrl = 'https://www.cninfo.com.cn/new/disclosure/detail?stockCode=' + secCode + '&announcementId=' + annId + '&orgId=' + orgId;
+  window.open(detailUrl, '_blank');
+}
+
+function ftReset() {
+  document.getElementById('ftKeyword').value = '';
+  document.getElementById('ftStock').value = '';
+  document.getElementById('ftDateFrom').value = '';
+  document.getElementById('ftDateThru').value = '';
+  document.getElementById('ftStats').style.display = 'none';
+  document.getElementById('ftList').style.display = 'none';
+  document.getElementById('ftPagination').innerHTML = '';
+  document.getElementById('ftEmpty').style.display = 'block';
+  document.querySelector('#ftEmpty p').textContent = '输入关键词搜索公告正文内容';
+}
+
+// ==================== ESNAI: 会计视野 ====================
+let esnaiPage = 1;
+
+async function esnaiCheckLoginStatus() {
+  try {
+    const resp = await fetch('/api/esnai/login-status');
+    const data = await resp.json();
+    const el = document.getElementById('esnaiLoginStatus');
+    if (data.loggedIn) {
+      el.innerHTML = '✅ 已登录论坛，使用全文检索模式（快速）';
+      el.style.color = '#52c41a';
+    } else if (data.retryIn > 0) {
+      el.innerHTML = `⏳ 账号锁定中，约 ${Math.ceil(data.retryIn / 60)} 分钟后自动重试，当前使用抓取模式`;
+      el.style.color = '#faad14';
+    } else {
+      el.innerHTML = '⚠️ 未登录，使用抓取模式搜索（较慢，仅搜索前3页帖子）';
+      el.style.color = '#faad14';
+    }
+  } catch(e) {}
+}
+
+// 页面加载时检查登录状态
+esnaiCheckLoginStatus();
+
+async function esnaiSearch(pageNo) {
+  esnaiPage = pageNo || 1;
+  const keyword = document.getElementById('esnaiKeyword').value.trim();
+
+  if (!keyword) {
+    document.getElementById('esnaiEmptyState').style.display = 'block';
+    document.getElementById('esnaiEmptyState').innerHTML = '<p style="color:#f5222d;">请输入搜索关键词</p>';
+    return;
+  }
+
+  document.getElementById('esnaiEmptyState').style.display = 'none';
+  document.getElementById('esnaiLoading').style.display = 'block';
+  document.getElementById('esnaiResults').style.display = 'none';
+
+  const fid = document.getElementById('esnaiForumSelect').value;
+  const apiUrl = `/api/esnai/search?keyword=${encodeURIComponent(keyword)}&fid=${fid}&page=${esnaiPage}`;
+  document.getElementById('esnaiLoading').querySelector('p').textContent = '正在搜索帖子正文和回复内容，请耐心等待...';
+
+  try {
+    const resp = await fetch(apiUrl);
+    const data = await resp.json();
+
+    document.getElementById('esnaiLoading').style.display = 'none';
+    document.getElementById('esnaiLoading').querySelector('p').textContent = '正在加载...';
+
+    if (data.error) {
+      document.getElementById('esnaiEmptyState').style.display = 'block';
+      document.getElementById('esnaiEmptyState').innerHTML = '<p style="color:#f5222d;">加载失败：' + data.error + '</p>';
+      return;
+    }
+
+    renderEsnaiSearchResults(data);
+  } catch (e) {
+    document.getElementById('esnaiLoading').style.display = 'none';
+    document.getElementById('esnaiLoading').querySelector('p').textContent = '正在加载...';
+    document.getElementById('esnaiEmptyState').style.display = 'block';
+    document.getElementById('esnaiEmptyState').innerHTML = '<p style="color:#f5222d;">请求失败：' + e.message + '</p>';
+  }
+}
+
+function renderEsnaiSearchResults(data) {
+  const container = document.getElementById('esnaiResults');
+  const results = data.results || [];
+
+  if (results.length === 0) {
+    container.style.display = 'none';
+    document.getElementById('esnaiEmptyState').style.display = 'block';
+    document.getElementById('esnaiEmptyState').innerHTML = '<p>未找到包含该关键词的帖子或回复</p>';
+    return;
+  }
+
+  const keyword = document.getElementById('esnaiKeyword').value.trim();
+  let html = '';
+  // Info bar
+  const totalShown = data.totalResults || results.length;
+  const modeText = data.searchMode === 'login' ? '全文检索' : `抓取模式（扫描了 ${data.threadsScanned || 0} 个帖子）`;
+  const loggedInBadge = data.loggedIn ? '<span style="color:#52c41a;">● 已登录</span>' : '<span style="color:#fa8c16;">● 未登录</span>';
+  html += `<div class="esnai-info">找到 ${totalShown} 条结果 · ${modeText} · ${loggedInBadge} · 已自动加载完整回复内容</div>`;
+
+  results.forEach((r, idx) => {
+    const matchTag = r.matchedIn === '标题' ? '<span class="tag" style="background:#e6f7ff;color:#1890ff;">标题匹配</span>' :
+      r.matchedIn === '主帖' ? '<span class="tag" style="background:#f6ffed;color:#52c41a;">正文匹配</span>' :
+      r.matchedIn === '回复' ? '<span class="tag" style="background:#fff7e6;color:#fa8c16;">回复匹配</span>' :
+      '<span class="tag" style="background:#f9f0ff;color:#722ed1;">全文匹配</span>';
+
+    // Highlight keyword in search snippet
+    let snippetHtml = escapeHtml(r.content || '');
+    if (r.content && r.content !== '(标题匹配)' && keyword) {
+      const regex = new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      snippetHtml = snippetHtml.replace(regex, '<em style="color:#f5222d;font-style:normal;font-weight:600;">$1</em>');
+    }
+
+    // Build full posts (main post + replies) inline display
+    let postsHtml = '';
+    const posts = r.posts || [];
+    if (posts.length > 0) {
+      postsHtml = '<div class="esnai-posts-inline">';
+      posts.forEach(post => {
+        let content = escapeHtml(post.content || '');
+        // Highlight keyword in full content
+        if (keyword && content) {
+          const regex = new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+          content = content.replace(regex, '<em style="color:#f5222d;font-style:normal;font-weight:600;background:#fff1f0;">$1</em>');
+        }
+        content = content.replace(/\n/g, '<br>');
+
+        postsHtml += `<div class="esnai-post ${post.isOP ? 'esnai-post-op' : ''}">
+          <div class="esnai-post-header">
+            <span class="esnai-post-author">${escapeHtml(post.author || '匿名')}</span>
+            <span class="esnai-post-date">${escapeHtml(post.date || '')}</span>
+            ${post.isOP ? '<span class="tag" style="background:#e6f7ff;color:#1890ff;">主帖</span>' : '<span class="tag" style="background:#f0f0f0;color:#666;">回复</span>'}
+          </div>
+          <div class="esnai-post-content">${content || '(无内容)'}</div>
+        </div>`;
+      });
+      if (r.threadTotalPages && r.threadTotalPages > 1) {
+        postsHtml += `<div style="text-align:center;padding:10px;color:#999;font-size:12px;">该帖子共 ${r.threadTotalPages} 页，以上为第 1 页内容，<a href="https://bbs.esnai.cn/thread-${r.tid}-1-1.html" target="_blank" style="color:#2c5aa0;">查看全部 ↗</a></div>`;
+      }
+      postsHtml += '</div>';
+    } else {
+      postsHtml = `<div style="padding:14px;color:#999;font-size:13px;text-align:center;background:#fafafa;border-radius:6px;">完整内容未自动加载（仅前10条结果展开完整内容），<a href="https://bbs.esnai.cn/thread-${r.tid}-1-1.html" target="_blank" style="color:#2c5aa0;">点击查看原文 ↗</a></div>`;
+    }
+
+    html += `<div class="esnai-card esnai-search-card esnai-search-card-inline">
+      <div class="esnai-card-title">${escapeHtml(r.title)} ${matchTag}</div>
+      ${r.content && r.content !== '(标题匹配)' ? `<div class="esnai-card-content">匹配片段：${snippetHtml}</div>` : ''}
+      <div class="esnai-card-meta">
+        <span>作者：${escapeHtml(r.matchedAuthor || r.author || '')}</span>
+        ${r.matchedDate || r.date ? `<span>日期：${r.matchedDate || r.date}</span>` : ''}
+        ${r.forum ? `<span>板块：${escapeHtml(r.forum)}</span>` : ''}
+        ${r.stats ? `<span>${escapeHtml(r.stats)}</span>` : ''}
+        <a href="https://bbs.esnai.cn/thread-${r.tid}-1-1.html" target="_blank" style="color:#2c5aa0;margin-left:auto;">在论坛查看原文 ↗</a>
+      </div>
+      ${postsHtml}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+  container.style.display = 'block';
+
+  // Pagination
+  renderEsnaiPagination(data.totalPages || 1);
+}
+
+async function esnaiViewThread(tid) {
+  document.getElementById('modalTitle').textContent = '加载中...';
+  document.getElementById('modalBody').innerHTML = '<div class="modal-loading"><div class="loading-spinner"></div><p>正在加载帖子内容和回复...</p></div>';
+  document.getElementById('modalOverlay').style.display = 'flex';
+
+  try {
+    const resp = await fetch(`/api/esnai/thread?tid=${tid}`);
+    const data = await resp.json();
+
+    if (data.error) {
+      document.getElementById('modalTitle').textContent = '加载失败';
+      document.getElementById('modalBody').innerHTML = '<p style="color:#f5222d;">' + data.error + '</p>';
+      return;
+    }
+
+    document.getElementById('modalTitle').textContent = data.title || '帖子详情';
+
+    let postsHtml = '';
+    const keyword = document.getElementById('esnaiKeyword').value.trim();
+
+    (data.posts || []).forEach((post, idx) => {
+      let content = escapeHtml(post.content || '');
+      // Highlight keyword
+      if (keyword && content) {
+        const regex = new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        content = content.replace(regex, '<em style="color:#f5222d;font-style:normal;font-weight:600;background:#fff1f0;">$1</em>');
+      }
+      // Convert newlines to <br>
+      content = content.replace(/\n/g, '<br>');
+
+      postsHtml += `<div class="esnai-post ${post.isOP ? 'esnai-post-op' : ''}">
+        <div class="esnai-post-header">
+          <span class="esnai-post-author">${escapeHtml(post.author)}</span>
+          <span class="esnai-post-date">${escapeHtml(post.date)}</span>
+          ${post.isOP ? '<span class="tag" style="background:#e6f7ff;color:#1890ff;">主帖</span>' : '<span class="tag" style="background:#f0f0f0;color:#666;">回复</span>'}
+        </div>
+        <div class="esnai-post-content">${content}</div>
+      </div>`;
+    });
+
+    if (!postsHtml) {
+      postsHtml = '<p style="text-align:center;color:#999;padding:30px;">无法解析帖子内容，请直接访问论坛查看</p>';
+    }
+
+    document.getElementById('modalBody').innerHTML = `
+      <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee;font-size:13px;color:#999;">
+        <a href="${data.url}" target="_blank" style="color:#2c5aa0;">在论坛查看原文 ↗</a>
+      </div>
+      <div class="esnai-posts-list">${postsHtml}</div>
+    `;
+  } catch (e) {
+    document.getElementById('modalTitle').textContent = '加载失败';
+    document.getElementById('modalBody').innerHTML = '<p style="color:#f5222d;">' + e.message + '</p>';
+  }
+}
+
+function renderEsnaiPagination(totalPages) {
+  const container = document.getElementById('esnaiPagination');
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  if (esnaiPage > 1) {
+    html += `<button onclick="esnaiSearch(${esnaiPage - 1})">上一页</button>`;
+  }
+  const start = Math.max(1, esnaiPage - 2);
+  const end = Math.min(totalPages, esnaiPage + 2);
+  for (let i = start; i <= end; i++) {
+    html += `<button class="${i === esnaiPage ? 'active' : ''}" onclick="esnaiSearch(${i})">${i}</button>`;
+  }
+  if (esnaiPage < totalPages) {
+    html += `<button onclick="esnaiSearch(${esnaiPage + 1})">下一页</button>`;
+  }
+  html += `<span style="margin-left:10px;color:#999;font-size:13px;">第 ${esnaiPage}/${totalPages} 页</span>`;
+  container.innerHTML = html;
+}
+
+// ==================== 12366: 税务咨询 ====================
+let tax12366Page = 1;
+
+async function tax12366Search(pageNo) {
+  tax12366Page = pageNo || 1;
+  const keyword = document.getElementById('tax12366Keyword').value.trim();
+
+  if (!keyword) {
+    document.getElementById('tax12366EmptyState').style.display = 'block';
+    document.getElementById('tax12366EmptyState').innerHTML = '<p style="color:#f5222d;">请输入搜索关键词</p>';
+    return;
+  }
+
+  document.getElementById('tax12366EmptyState').style.display = 'none';
+  document.getElementById('tax12366Results').style.display = 'none';
+  document.getElementById('tax12366Pagination').style.display = 'none';
+  document.getElementById('tax12366Loading').style.display = 'block';
+
+  try {
+    const resp = await fetch(`/api/tax12366/search?keyword=${encodeURIComponent(keyword)}&page=${tax12366Page}`);
+    const data = await resp.json();
+
+    document.getElementById('tax12366Loading').style.display = 'none';
+
+    if (data.error) {
+      document.getElementById('tax12366EmptyState').style.display = 'block';
+      document.getElementById('tax12366EmptyState').innerHTML = '<p style="color:#f5222d;">' + data.error + '</p>';
+      return;
+    }
+
+    renderTax12366Results(data);
+  } catch (e) {
+    document.getElementById('tax12366Loading').style.display = 'none';
+    document.getElementById('tax12366EmptyState').style.display = 'block';
+    document.getElementById('tax12366EmptyState').innerHTML = '<p style="color:#f5222d;">请求失败：' + e.message + '</p>';
+  }
+}
+
+function renderTax12366Results(data) {
+  const container = document.getElementById('tax12366Results');
+  const items = data.items || [];
+
+  if (items.length === 0) {
+    container.style.display = 'none';
+    document.getElementById('tax12366EmptyState').style.display = 'block';
+    document.getElementById('tax12366EmptyState').innerHTML = '<p>未找到匹配的税务咨询</p>';
+    return;
+  }
+
+  const keyword = document.getElementById('tax12366Keyword').value.trim();
+  const keywordRegex = keyword ? new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi') : null;
+
+  // Info bar
+  let html = `<div class="tax12366-info">找到 ${data.totalResults} 条结果（第 ${data.currentPage} 页，共 ${data.totalPages} 页）· 国家税务总局12366纳税服务平台</div>`;
+
+  items.forEach((item, idx) => {
+    // Highlight keyword in title
+    let titleHtml = escapeHtml(item.title);
+    if (keywordRegex) titleHtml = titleHtml.replace(keywordRegex, '<em class="tax12366-hl">$1</em>');
+
+    // Question content with keyword highlight
+    let questionHtml = escapeHtml(item.content || '');
+    if (keywordRegex) questionHtml = questionHtml.replace(keywordRegex, '<em class="tax12366-hl">$1</em>');
+    
+    // Truncate long questions
+    const isLongQuestion = (item.content || '').length > 600;
+    const truncatedQuestion = questionHtml.length > 650 ? questionHtml.substring(0, 650) + '...' : questionHtml;
+
+    // Reply content with keyword highlight
+    let replyHtml = '';
+    if (item.replyContent) {
+      let replyText = escapeHtml(item.replyContent);
+      if (keywordRegex) replyText = replyText.replace(keywordRegex, '<em class="tax12366-hl">$1</em>');
+      const replyPreview = replyText.length > 800 ? replyText.substring(0, 800) + '...' : replyText;
+      
+      replyHtml = `<div class="tax12366-reply-section">
+        <div class="tax12366-reply-header">
+          <span class="tax12366-reply-icon">📩</span>
+          <span class="tax12366-reply-org">答复机构：${escapeHtml(item.replyOrg || '')}</span>
+          ${item.replyTime ? `<span class="tax12366-reply-time">答复时间：${escapeHtml(item.replyTime)}</span>` : ''}
+        </div>
+        <div class="tax12366-reply-content">${replyPreview}</div>
+        ${item.replyContent.length > 800 ? `<a href="https://12366.chinatax.gov.cn/nszx/onlinemessage/detail?id=${item.code}" target="_blank" style="font-size:12px;color:#2c5aa0;">查看完整答复 ↗</a>` : ''}
+      </div>`;
+    } else if (idx < 5) {
+      // Indicates no reply yet
+      replyHtml = `<div class="tax12366-reply-section tax12366-no-reply">
+        <span>⏳ 暂无官方答复</span>
+        <a href="https://12366.chinatax.gov.cn/nszx/onlinemessage/detail?id=${item.code}" target="_blank" style="color:#2c5aa0;margin-left:8px;">查看详情 ↗</a>
+      </div>`;
+    } else {
+      replyHtml = `<div class="tax12366-reply-section tax12366-no-reply">
+        <a href="https://12366.chinatax.gov.cn/nszx/onlinemessage/detail?id=${item.code}" target="_blank" style="color:#2c5aa0;">查看详情和答复 ↗</a>
+      </div>`;
+    }
+
+    html += `<div class="tax12366-card">
+      <div class="tax12366-card-header">
+        <span class="tax12366-card-index">#${(data.currentPage - 1) * data.pageSize + idx + 1}</span>
+        <span class="tax12366-card-title">${titleHtml}</span>
+      </div>
+      <div class="tax12366-card-question">
+        <div class="tax12366-section-label">📝 问题内容</div>
+        <div class="tax12366-question-text">${truncatedQuestion}</div>
+      </div>
+      <div class="tax12366-card-meta">
+        <span>📍 ${escapeHtml(item.unitname || '')}</span>
+        <span>📅 ${escapeHtml(item.fbsj || '')}</span>
+        ${item.gxsj ? `<span>🕐 更新：${escapeHtml(item.gxsj)}</span>` : ''}
+        <a href="https://12366.chinatax.gov.cn/nszx/onlinemessage/detail?id=${item.code}" target="_blank" style="margin-left:auto;color:#2c5aa0;font-size:13px;">查看原文 ↗</a>
+      </div>
+      ${replyHtml}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+  container.style.display = 'block';
+
+  renderTax12366Pagination(data.totalPages);
+}
+
+function renderTax12366Pagination(totalPages) {
+  const container = document.getElementById('tax12366Pagination');
+  if (totalPages <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  if (tax12366Page > 1) {
+    html += `<button onclick="tax12366Search(${tax12366Page - 1})">上一页</button>`;
+  }
+  const start = Math.max(1, tax12366Page - 2);
+  const end = Math.min(totalPages, tax12366Page + 2);
+  for (let i = start; i <= end; i++) {
+    html += `<button class="${i === tax12366Page ? 'active' : ''}" onclick="tax12366Search(${i})">${i}</button>`;
+  }
+  if (tax12366Page < totalPages) {
+    html += `<button onclick="tax12366Search(${tax12366Page + 1})">下一页</button>`;
+  }
+  html += `<span style="margin-left:10px;color:#999;font-size:13px;">第 ${tax12366Page}/${totalPages} 页</span>`;
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>

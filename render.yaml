@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: caiwurenchaoshi
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.2

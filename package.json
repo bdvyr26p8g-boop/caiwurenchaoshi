@@ -1,0 +1,16 @@
+{
+  "name": "caiwurenchaoshi",
+  "version": "1.0.0",
+  "description": "财务人超市 - 法规公告检索与税务咨询平台",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "pdf-parse": "^2.4.5",
+    "iconv-lite": "^0.6.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
