@@ -231,25 +231,43 @@ let currentPage = 1, currentKeyword = '', currentUser = null;
 let stockList = [];
 const PAGE_SIZE = 20;
 const sources = { cninfo:true, fulltext:true, inquiry:true, refi:true };
+// API endpoint - set via URL param or localStorage, default to same origin (works with tunnel)
+const params = new URLSearchParams(window.location.search);
+let API_BASE = params.get('api') || localStorage.getItem('api_base') || '';
+if(!API_BASE) API_BASE = window.location.origin; // fallback to same origin
+
 
 // ==================== Init ====================
+async function apiFetch(path, opts = {}){
+  const url = API_BASE + path;
+  console.log('API:', url.substring(0,60));
+  return fetch(url, { ...opts, credentials: 'include' });
+}
 (async function init(){
   try{
-    const r=await fetch('/api/auth/session');const d=await r.json();
+    const r = await apiFetch('/api/auth/session'); const d = await r.json();
     if(d.loggedIn){currentUser=d;document.getElementById('userDisplay').textContent='👤 '+d.name;document.getElementById('logoutBtn').style.display='inline'}
-    else{window.location.href='/login'}
-  }catch(e){window.location.href='/login'}
+    else{document.getElementById('userDisplay').textContent='⚠️ 未连接后端';showApiSetup()}
+  }catch(e){document.getElementById('userDisplay').textContent='⚠️ 未连接后端';showApiSetup()}
   loadStocks();
 })();
 
+function showApiSetup(){
+  const prompt = prompt('输入后端地址（Cloudflare Tunnel URL）：\n\n例如：https://xxx.trycloudflare.com\n\n留空则使用当前地址', API_BASE);
+  if(prompt && prompt.trim()){
+    localStorage.setItem('api_base', prompt.trim());
+    API_BASE = prompt.trim();
+    location.reload();
+  }
+}
 async function loadStocks(){
-  try{const r=await fetch('/api/cninfo/stocks');const d=await r.json();stockList=d.stockList||[];window._stockList=stockList}
+  try{const r=await apiFetch('/api/cninfo/stocks');const d=await r.json();stockList=d.stockList||[];window._stockList=stockList}
   catch(e){console.log('Stock list load failed')}
 }
 
 // ==================== Auth ====================
 function showLogout(){document.getElementById('logoutBtn').style.display='inline'}
-async function doLogout(){await fetch('/api/auth/logout');window.location.href='/login'}
+async function doLogout(){await apiFetch('/api/auth/logout');window.location.href='/login'}
 
 // ==================== Source Toggle ====================
 function toggleSource(el){
@@ -321,7 +339,7 @@ async function doSearch(pageNo){
       const cnBody=new URLSearchParams({searchkey:kw||co,stock:co,plate:'sz;sh;bj'});
       if(ds)cnBody.set('sdate',ds);if(de)cnBody.set('edate',de);
       cnBody.set('pageNum',currentPage);cnBody.set('pageSize',PAGE_SIZE);cnBody.set('sortName','');cnBody.set('sortType','desc');
-      const r=await fetch('/api/cninfo/search',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:cnBody.toString()});
+      const r=await apiFetch('/api/cninfo/search',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:cnBody.toString()});
       const d=await r.json();console.log('cninfo res:',d.announcements?.length);
       if(d.announcements)allItems.push(...d.announcements.map(i=>({id:'cninfo_'+i.announcementId,title:i.announcementTitle||'',source:'cninfo',sourceName:'巨潮公告',stockCode:i.secCode||'',company:i.secName||'',date:fmtDate(i.announcementTime),url:'https://www.cninfo.com.cn/new/disclosure/detail?stockCode='+(i.secCode||'')+'&announcementId='+(i.announcementId||''),content:''})))
     }catch(e){console.error('cninfo error:',e);}})());
@@ -332,7 +350,7 @@ async function doSearch(pageNo){
     promises.push((async()=>{try{
       const p=new URLSearchParams({searchkey:kw,pageNum:currentPage,isfulltext:'true',sortName:'nothing',sortType:'desc'});
       if(co)p.set('stock',co);if(ds)p.set('sdate',ds);if(de)p.set('edate',de);
-      const r=await fetch('/api/cninfo/fulltext?'+p.toString());
+      const r=await apiFetch('/api/cninfo/fulltext?'+p.toString());
       const d=await r.json();console.log('fulltext res:',d.announcements?.length);
       if(d.announcements)allItems.push(...d.announcements.map(i=>({id:'ft_'+i.announcementId,title:i.announcementTitle||'',source:'fulltext',sourceName:'公告全文',stockCode:i.secCode||'',company:i.secName||'',date:fmtDate(i.announcementTime),url:'https://www.cninfo.com.cn/new/disclosure/detail?stockCode='+(i.secCode||'')+'&announcementId='+(i.announcementId||''),content:i.announcementContent||''})))
     }catch(e){console.error('fulltext error:',e);}})());
@@ -343,7 +361,7 @@ async function doSearch(pageNo){
     promises.push((async()=>{try{
       const p=new URLSearchParams({page:currentPage,keyword:kw||co});
       if(co)p.set('company',co);if(ds)p.set('dateStart',ds);if(de)p.set('dateEnd',de);
-      const r=await fetch('/api/inquiry/search?'+p.toString());
+      const r=await apiFetch('/api/inquiry/search?'+p.toString());
       const d=await r.json();console.log('inquiry res:',d.items?.length);
       if(d.items){
         let items=d.items;
@@ -439,7 +457,7 @@ async function lawSearch(p){
   document.getElementById('lawLoading').style.display='flex';document.getElementById('lawResults').innerHTML='';
   try{
     const body={keyword:kw,currentPage:lawPage,fawenjg:org,wenhao:wh,fxj:'',beginDate:ds,endDate:de,pageSize:20};
-    const r=await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r=await apiFetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     document.getElementById('lawLoading').style.display='none';
     if(d.resultList&&d.resultList.length){
@@ -460,7 +478,7 @@ function switchTab(name){
 
 // ==================== Esnai Search ====================
 let esnaiPage=1;
-async function esnaiCheckLogin(){try{const r=await fetch('/api/esnai/login-status');const d=await r.json();document.getElementById('esnaiLoginStatus').innerHTML=d.loggedIn?'<span style="color:#52c41a">✅ 论坛已自动登录</span>':'<span style="color:#fa8c16">⚠️ 论坛未登录，将使用抓取模式</span>'}catch(e){}}
+async function esnaiCheckLogin(){try{const r=await apiFetch('/api/esnai/login-status');const d=await r.json();document.getElementById('esnaiLoginStatus').innerHTML=d.loggedIn?'<span style="color:#52c41a">✅ 论坛已自动登录</span>':'<span style="color:#fa8c16">⚠️ 论坛未登录，将使用抓取模式</span>'}catch(e){}}
 esnaiCheckLogin();
 async function esnaiSearch(p){
   esnaiPage=p||1;const kw=document.getElementById('esnaiKeyword').value.trim();if(!kw)return;
@@ -470,7 +488,7 @@ async function esnaiSearch(p){
   try{
     let url='/api/esnai/search?keyword='+encodeURIComponent(kw)+'&fid='+fid+'&page='+esnaiPage;
     if(ds)url+='&dateStart='+ds;if(de)url+='&dateEnd='+de;
-    const r=await fetch(url);const d=await r.json();
+    const r=await apiFetch(url);const d=await r.json();
     document.getElementById('esnaiLoading').style.display='none';
     if(d.results&&d.results.length){
       let html='<div class="stats-bar"><span>共找到 <strong>'+d.totalResults+'</strong> 条帖子</span></div>';
@@ -493,7 +511,7 @@ async function taxSearch(p){
     let url='/api/tax12366/search?keyword='+encodeURIComponent(kw)+'&page='+taxPage;
     if(region)url+='&region='+encodeURIComponent(region);
     if(ds)url+='&dateStart='+ds;if(de)url+='&dateEnd='+de;
-    const r=await fetch(url);const d=await r.json();
+    const r=await apiFetch(url);const d=await r.json();
     document.getElementById('taxLoading').style.display='none';
     if(d.items&&d.items.length){
       let html='<div class="stats-bar"><span>共找到 <strong>'+d.totalResults+'</strong> 条问答</span></div>';
