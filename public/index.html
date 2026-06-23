@@ -233,8 +233,7 @@ const PAGE_SIZE = 20;
 const sources = { cninfo:true, fulltext:true, inquiry:true, refi:true };
 // API endpoint - set via URL param or localStorage, default to same origin (works with tunnel)
 const params = new URLSearchParams(window.location.search);
-let API_BASE = params.get('api') || localStorage.getItem('api_base') || '';
-if(!API_BASE) API_BASE = window.location.origin; // fallback to same origin
+let API_BASE = params.get('api') || localStorage.getItem('api_base') || 'https://upgrades-coupon-figured-ringtones.trycloudflare.com';
 
 
 // ==================== Init ====================
