@@ -1,7 +1,7 @@
 {
   "name": "caiwurenchaoshi",
   "version": "1.0.0",
-  "description": "财务人超市 - 法规公告检索与税务咨询平台",
+  "description": "财务人超市 - 法规公告检索与税务咨询平台（需注册登录）",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

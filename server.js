@@ -6,6 +6,7 @@ const path = require('path');
 const { PDFParse } = require('pdf-parse');
 const querystring = require('querystring');
 const iconv = require('iconv-lite');
+const crypto = require('crypto');
 
 // Encode a string to GBK URL-encoded format (for Discuz forum search)
 function gbkUrlEncode(str) {
@@ -42,8 +43,83 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
 };
+
+// ===== 用户认证模块 =====
+const DATA_DIR = path.join(__dirname, 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
+if (!fs.existsSync(DATA_DIR)) { fs.mkdirSync(DATA_DIR, { recursive: true }); }
+
+function loadJSON(file, def) { try { return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : def; } catch(e) { return def; } }
+function saveJSON(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8'); }
+function hashPwd(pw) { return crypto.createHash('sha256').update(pw + 'cwrch-salt-2026').digest('hex'); }
+function newToken() { return crypto.randomUUID(); }
+function getCookie(req, name) {
+  return (req.headers.cookie || '').split(';').reduce((r, c) => {
+    const [k, ...v] = c.trim().split('='); if (k && v.length) r[k] = v.join('='); return r;
+  }, {})[name] || null;
+}
+function checkAuth(req) { const t = getCookie(req, 'token'); return t ? (loadJSON(SESSIONS_FILE, {})[t] || null) : null; }
+
+async function parseBody(req) {
+  return new Promise(resolve => {
+    let b = ''; req.on('data', c => b += c); req.on('end', () => {
+      try { resolve(JSON.parse(b || '{}')); } catch { resolve(Object.fromEntries(new URLSearchParams(b))); }
+    });
+  });
+}
+
+function sendJSON(res, code, data, extraHeaders) {
+  const h = { 'Content-Type': 'application/json; charset=utf-8', ...(extraHeaders||{}) };
+  res.writeHead(code, h); res.end(JSON.stringify(data));
+}
+
+function handleRegister(req, res) {
+  parseBody(req).then(b => {
+    const { email, password, name } = b;
+    if (!email || !password) return sendJSON(res, 400, { error: '邮箱和密码不能为空' });
+    if (password.length < 6) return sendJSON(res, 400, { error: '密码至少6位' });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return sendJSON(res, 400, { error: '邮箱格式不正确' });
+    const users = loadJSON(USERS_FILE, {});
+    if (users[email]) return sendJSON(res, 409, { error: '该邮箱已注册' });
+    users[email] = { email, password: hashPwd(password), name: name || email.split('@')[0], createdAt: Date.now() };
+    saveJSON(USERS_FILE, users);
+    const token = newToken();
+    const sessions = loadJSON(SESSIONS_FILE, {});
+    sessions[token] = { email, name: users[email].name, createdAt: Date.now() };
+    saveJSON(SESSIONS_FILE, sessions);
+    sendJSON(res, 201, { ok: true, name: users[email].name }, { 'Set-Cookie': `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30*24*3600}` });
+  });
+}
+
+function handleLogin(req, res) {
+  parseBody(req).then(b => {
+    const { email, password } = b;
+    const users = loadJSON(USERS_FILE, {});
+    if (!users[email] || users[email].password !== hashPwd(password)) return sendJSON(res, 401, { error: '邮箱或密码错误' });
+    const token = newToken();
+    const sessions = loadJSON(SESSIONS_FILE, {});
+    sessions[token] = { email, name: users[email].name, createdAt: Date.now() };
+    saveJSON(SESSIONS_FILE, sessions);
+    sendJSON(res, 200, { ok: true, name: users[email].name }, { 'Set-Cookie': `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30*24*3600}` });
+  });
+}
+
+function handleLogout(req, res) {
+  const token = getCookie(req, 'token');
+  if (token) { const s = loadJSON(SESSIONS_FILE, {}); delete s[token]; saveJSON(SESSIONS_FILE, s); }
+  sendJSON(res, 200, { ok: true }, { 'Set-Cookie': 'token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' });
+}
+
+function handleSession(req, res) {
+  const user = checkAuth(req);
+  sendJSON(res, 200, user ? { loggedIn: true, email: user.email, name: user.name } : { loggedIn: false });
+}
 
 // Serve static files
 function serveStatic(req, res) {
@@ -364,16 +440,19 @@ async function cninfoFulltextSearch(req, res) {
   const stock = query.stock || '';
   const sdate = query.sdate || '';
   const edate = query.edate || '';
+  const category = query.category || '';  // 公告类型
+  const isfulltext = query.isfulltext || 'true';  // 全文/标题切换
 
   const params = new URLSearchParams();
   params.set('searchkey', searchkey);
   params.set('sdate', sdate);
   params.set('edate', edate);
-  params.set('isfulltext', 'true');
+  params.set('isfulltext', isfulltext);
   params.set('sortName', 'nothing');
   params.set('sortType', 'desc');
   params.set('pageNum', pageNum);
   if (stock) params.set('stock', stock);
+  if (category) params.set('column', category);
 
   const apiPath = '/new/fulltextSearch/full?' + params.toString();
 
@@ -392,7 +471,7 @@ async function cninfoFulltextSearch(req, res) {
     rejectUnauthorized: false,
   };
 
-  console.log(`[CninfoFulltext] keyword="${searchkey}" stock="${stock}" page=${pageNum}`);
+  console.log(`[CninfoFulltext] keyword="${searchkey}" stock="${stock}" page=${pageNum} isft=${isfulltext} cat=${category}`);
 
   const proxyReq = https.request(options, proxyRes => {
     let data = '';
@@ -952,6 +1031,9 @@ function handleTax12366Search(req, res) {
   const query = url.parse(req.url, true).query;
   const keyword = query.keyword || '';
   const page = parseInt(query.page) || 1;
+  const region = query.region || '';
+  const dateStart = query.dateStart || '';
+  const dateEnd = query.dateEnd || '';
 
   if (!keyword) {
     res.writeHead(200, {
@@ -965,9 +1047,10 @@ function handleTax12366Search(req, res) {
   const postData = querystring.stringify({
     nr: keyword,
     currentPage: page,
-    jg: '',
+    jg: region,
     zxjg: '',
-    lykssj: '',
+    lykssj: dateStart,
+    lyjssj: dateEnd,
   });
 
   const options = {
@@ -1178,6 +1261,141 @@ function handleTax12366Detail(req, res) {
     });
     res.end(JSON.stringify({ error: '请求失败' }));
   });
+}
+
+// ==================== Inquiry Letter Search (IPO/再融资问询函) ====================
+
+async function handleInquirySearch(req, res) {
+  const query = url.parse(req.url, true).query;
+  const company = (query.company || query.keyword || '').trim();
+  const keyword = (query.keyword || '').trim();
+  const exchange = query.exchange || 'all';
+  const page = parseInt(query.page) || 1;
+  const board = query.board || '';
+  const docType = query.docType || '';
+  const dateStart = query.dateStart || '';
+  const dateEnd = query.dateEnd || '';
+
+  console.log('[Inquiry] company=' + company + ' keyword=' + keyword + ' exchange=' + exchange + ' board=' + board + ' doctype=' + docType);
+
+  const pageSize = 20;
+
+  try {
+    let results = [];
+
+    // Search SSE - use two SQL IDs for broader coverage
+    if (exchange === 'all' || exchange === 'sse') {
+      // BS_GGLL: general inquiry letters (all markets)
+      // BS_KCB_GGLL: 科创板 inquiry letters
+      const sqlds = ['BS_GGLL', 'BS_KCB_GGLL'];
+      for (const sqld of sqlds) {
+        const sseUrl = 'http://query.sse.com.cn/commonSoaQuery.do?siteId=28&sqlId=' + sqld + '&channelId=10743%2C10744%2C10012&order=createTime%7Cdesc%2Cstockcode%7Casc&isPagination=true&pageHelp.pageSize=' + pageSize + '&pageHelp.pageNo=' + page + '&pageHelp.beginPage=' + page + '&pageHelp.cacheSize=1';
+        try {
+          const data = await fetchSSEInquiry(sseUrl);
+          if (data && data.result) {
+            results.push(...data.result.map(item => ({
+              id: 'sse_' + sqld + '_' + (item.docURL || Date.now()).toString().replace(/[^a-z0-9]/gi, '_'),
+              title: item.docTitle || '',
+              stockCode: item.stockcode || '',
+              stockName: item.extGSJC || '',
+              company: item.extNAME || item.extGSJC || '',
+              date: (item.cmsOpDate || '').substring(0, 10),
+              type: item.extWTFL || '问询函',
+              exchange: '上交所',
+              exchangeCode: 'sse',
+              board: sqld === 'BS_KCB_GGLL' ? '科创板' : parseBoard(item),
+              url: item.docURL ? 'https://www.sse.com.cn' + item.docURL : '',
+              content: item.docKeyword || '',
+              source: '上海证券交易所'
+            })));
+          }
+        } catch(e) { console.error('[Inquiry-SSE-' + sqld + ']', e.message); }
+      }
+    }
+
+    // Search SZSE
+    if (exchange === 'all' || exchange === 'szse') {
+      try {
+        const szseUrl = 'https://www.szse.cn/api/disc/announcement/annList?random=' + Math.random() + '&secCode=&beginDate=' + dateStart + '&endDate=' + dateEnd + '&pageIndex=' + (page - 1) + '&pageSize=' + pageSize;
+        const data = await fetchSZSEInquiry(szseUrl);
+        if (data && data.data) {
+          results.push(...data.data.map(item => ({
+            id: 'szse_' + (item.announceId || ''),
+            title: item.announcementTitle || item.title || '',
+            stockCode: item.secCode || item.stockCode || '',
+            stockName: item.secName || item.stockName || '',
+            company: item.secName || item.stockName || '',
+            date: (item.announcementTime || item.declareDate || '').substring(0, 10),
+            type: item.announcementType || '问询函',
+            exchange: '深交所',
+            exchangeCode: 'szse',
+            board: parseBoardSZSE(item),
+            url: item.adjunctUrl ? 'http://reportdocs.static.szse.cn/UpFiles/fxklwxhj/' + item.adjunctUrl : '',
+            source: '深圳证券交易所'
+          })));
+        }
+      } catch(e) { console.error('[Inquiry-SZSE]', e.message); }
+    }
+    // BSE: skipped (302 blocked)
+
+    // Client-side filtering
+    if (company || keyword) {
+      const searchTerm = (company || keyword).trim();
+      const kws = searchTerm.split(/\\s+/).filter(k => k.length > 0);
+      results = results.filter(item => {
+        const text = (item.title + ' ' + item.stockName + ' ' + item.company + ' ' + item.stockCode + ' ' + item.type).toLowerCase();
+        return kws.every(kw => text.includes(kw.toLowerCase()));
+      });
+    }
+    if (board) { results = results.filter(item => item.board && item.board.includes(board)); }
+    if (docType) { results = results.filter(item => item.type && item.type.includes(docType)); }
+    if (dateStart) results = results.filter(item => item.date >= dateStart);
+    if (dateEnd) results = results.filter(item => item.date <= dateEnd);
+
+    results.sort((a, b) => b.date.localeCompare(a.date));
+    const total = results.length;
+
+    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ items: results, total, page, pageSize, exchange }));
+  } catch(e) {
+    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ items: [], total: 0, error: e.message }));
+  }
+}
+
+async function fetchSSEInquiry(sseUrl) {
+  return new Promise(r => {
+    const u = new URL(sseUrl);
+    const req = require('http').request({
+      hostname: u.hostname, path: u.pathname + u.search, timeout: 15000, servername: 'query.sse.com.cn',
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json', 'Referer': 'https://www.sse.com.cn/disclosure/credibility/supervision/inquiries/' }
+    }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => { try { r(JSON.parse(d)); } catch { r(null); } }); });
+    req.on('error', () => r(null)); req.end();
+  });
+}
+
+async function fetchSZSEInquiry(szseUrl) {
+  return new Promise(r => {
+    const u = new URL(szseUrl);
+    require('https').get({ hostname: u.hostname, path: u.pathname + u.search, rejectUnauthorized: false, timeout: 15000,
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json', 'Referer': 'https://www.szse.cn/disclosure/supervision/inquire/index.html' }
+    }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => { try { r(JSON.parse(d)); } catch { r(null); } }); })
+    .on('error', () => r(null));
+  });
+}
+
+// Board detection from SSE data
+function parseBoard(item) {
+  const code = item.stockcode || '';
+  if (/^68/.test(code)) return '科创板';
+  if (/^60/.test(code)) return '主板';
+  return '';
+}
+function parseBoardSZSE(item) {
+  const code = item.secCode || item.stockCode || '';
+  if (/^30/.test(code)) return '创业板';
+  if (/^00[012]/.test(code)) return '主板';
+  return '';
 }
 
 // Handle esnai forum request
@@ -1520,10 +1738,12 @@ async function batchFetchThreadPosts(results, batchSize = 5, maxItems = 10) {
 async function handleEsnaiSearch(req, res) {
   const query = url.parse(req.url, true).query;
   const keyword = (query.keyword || '').trim();
-  const fid = parseInt(query.fid) || 7; // default forum section
+  const fid = parseInt(query.fid) || 7;
   const page = parseInt(query.page) || 1;
+  const dateStart = query.dateStart || '';  // 时间段筛选
+  const dateEnd = query.dateEnd || '';
 
-  console.log(`[EsnaiSearch] keyword="${keyword}" fid=${fid} page=${page} loggedIn=${esnaiLoggedIn}`);
+  console.log(`[EsnaiSearch] keyword="${keyword}" fid=${fid} page=${page} dateStart=${dateStart} dateEnd=${dateEnd} loggedIn=${esnaiLoggedIn}`);
 
   if (!keyword) {
     res.writeHead(400);
@@ -1658,7 +1878,7 @@ async function handleEsnaiSearch(req, res) {
   }
 
   // Combine results: title matches first, then content matches
-  const allResults = [
+  let allResults = [
     ...titleMatches.map(t => ({
       tid: t.tid,
       title: t.title,
@@ -1673,6 +1893,21 @@ async function handleEsnaiSearch(req, res) {
     })),
     ...contentMatches,
   ];
+
+  // 时间段筛选
+  if (dateStart || dateEnd) {
+    const start = dateStart ? new Date(dateStart) : null;
+    const end = dateEnd ? new Date(dateEnd + 'T23:59:59') : null;
+    allResults = allResults.filter(r => {
+      if (!r.date) return !dateStart && !dateEnd;
+      const d = new Date(r.date);
+      if (isNaN(d.getTime())) return false;
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+    console.log(`[EsnaiSearch] Date filtered: ${allResults.length} results within range`);
+  }
 
   // Fetch full thread content (main post + replies) for each result
   // so the frontend can display complete replies inline without extra clicks.
@@ -1738,8 +1973,30 @@ const server = http.createServer((req, res) => {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
     });
     res.end();
+    return;
+  }
+
+  // Auth routes (no login required)
+  if (parsed.pathname === '/api/auth/register' && req.method === 'POST') {
+    handleRegister(req, res);
+    return;
+  } else if (parsed.pathname === '/api/auth/login' && req.method === 'POST') {
+    handleLogin(req, res);
+    return;
+  } else if (parsed.pathname === '/api/auth/logout') {
+    handleLogout(req, res);
+    return;
+  } else if (parsed.pathname === '/api/auth/session') {
+    handleSession(req, res);
+    return;
+  }
+
+  // Protect all business APIs - require login
+  if (parsed.pathname.startsWith('/api/') && !checkAuth(req)) {
+    sendJSON(res, 401, { error: '请先登录' });
     return;
   }
 
@@ -1769,6 +2026,10 @@ const server = http.createServer((req, res) => {
   } else if (parsed.pathname === '/api/tax12366/detail') {
     handleTax12366Detail(req, res);
   }
+  // Inquiry Letters (IPO/再融资问询函)
+  else if (parsed.pathname === '/api/inquiry/search') {
+    handleInquirySearch(req, res);
+  }
   // Esnai APIs
   else if (parsed.pathname === '/api/esnai/forum') {
     handleEsnaiForum(req, res);
@@ -1790,9 +2051,23 @@ const server = http.createServer((req, res) => {
       retryIn: esnaiLoginRetryTime > Date.now() ? Math.ceil((esnaiLoginRetryTime - Date.now()) / 1000) : 0,
     }));
   }
-  // Static files
+  // Static files / Main page
   else {
-    serveStatic(req, res);
+    // If not logged in, serve login page (unless requesting login page or static assets)
+    const reqPath = parsed.pathname || '/';
+    if (!checkAuth(req) && !reqPath.startsWith('/login') && !reqPath.match(/\.(js|css|png|svg|ico|woff2?)$/)) {
+      // Serve login.html for unauthenticated users
+      fs.readFile(path.join(__dirname, 'public', 'login.html'), (err, data) => {
+        if (err) {
+          serveStatic(req, res);
+        } else {
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(data);
+        }
+      });
+    } else {
+      serveStatic(req, res);
+    }
   }
 });
 
