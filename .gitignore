@@ -7,3 +7,5 @@ cloudflared.exe
 .DS_Store
 nul
 page_*.html
+public/bg.jpg
+public/images/
