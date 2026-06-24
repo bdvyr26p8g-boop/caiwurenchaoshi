@@ -233,9 +233,14 @@ let currentPage = 1, currentKeyword = '', currentUser = null;
 let stockList = [];
 const PAGE_SIZE = 20;
 const sources = { cninfo:true, fulltext:true, inquiry:true, refi:true };
-// API endpoint - set via URL param or localStorage
+// API endpoint - 直接写死后端地址，无需手动设置
+let API_BASE = 'https://announcements-reach-temperature-scanner.trycloudflare.com';
+
+// 如果URL带了 ?api=xxx 参数，优先使用
 const urlParams = new URLSearchParams(window.location.search);
-let API_BASE = urlParams.get('api') || localStorage.getItem('api_base') || '';
+if(urlParams.get('api')) API_BASE = urlParams.get('api');
+// 如果localStorage有保存的地址，优先使用
+if(localStorage.getItem('api_base')) API_BASE = localStorage.getItem('api_base');
 
 
 // ==================== Init ====================
