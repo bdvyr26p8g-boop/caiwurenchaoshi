@@ -74,8 +74,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei","PingFang SC
 
 <div class="header">
   <h1>🛒 财务人超市</h1>
-  <div>
-    <span class="user-info" id="userDisplay" onclick="showLogout()"></span>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <input type="text" id="apiInput" placeholder="后端地址" style="font-size:11px;padding:4px 8px;border:1px solid rgba(255,255,255,0.3);border-radius:4px;background:rgba(255,255,255,0.1);color:#fff;width:180px;display:none;">
+    <button id="apiSaveBtn" style="font-size:11px;padding:4px 8px;border:1px solid rgba(255,255,255,0.3);border-radius:4px;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:none;" onclick="saveApiBase()">连接</button>
+    <span class="user-info" id="userDisplay" onclick="toggleApiInput()"></span>
     <a class="logout-btn" id="logoutBtn" style="display:none" onclick="doLogout()">退出</a>
   </div>
 </div>
@@ -231,34 +233,56 @@ let currentPage = 1, currentKeyword = '', currentUser = null;
 let stockList = [];
 const PAGE_SIZE = 20;
 const sources = { cninfo:true, fulltext:true, inquiry:true, refi:true };
-// API endpoint - set via URL param or localStorage, default to same origin (works with tunnel)
-const params = new URLSearchParams(window.location.search);
-let API_BASE = params.get('api') || localStorage.getItem('api_base') || 'https://upgrades-coupon-figured-ringtones.trycloudflare.com';
+// API endpoint - set via URL param or localStorage
+const urlParams = new URLSearchParams(window.location.search);
+let API_BASE = urlParams.get('api') || localStorage.getItem('api_base') || '';
 
 
 // ==================== Init ====================
 async function apiFetch(path, opts = {}){
   const url = API_BASE + path;
-  console.log('API:', url.substring(0,60));
   return fetch(url, { ...opts, credentials: 'include' });
 }
+
+function toggleApiInput(){
+  const inp=document.getElementById('apiInput');
+  const btn=document.getElementById('apiSaveBtn');
+  if(inp.style.display==='none'){
+    inp.value=API_BASE;
+    inp.style.display='inline-block';
+    btn.style.display='inline-block';
+    inp.focus();
+  }else{
+    inp.style.display='none';
+    btn.style.display='none';
+  }
+}
+
+function saveApiBase(){
+  const val=document.getElementById('apiInput').value.trim().replace(/\/+$/,'');
+  if(val){localStorage.setItem('api_base',val);API_BASE=val;location.reload()}
+}
+
 (async function init(){
   try{
     const r = await apiFetch('/api/auth/session'); const d = await r.json();
-    if(d.loggedIn){currentUser=d;document.getElementById('userDisplay').textContent='👤 '+d.name;document.getElementById('logoutBtn').style.display='inline'}
-    else{document.getElementById('userDisplay').textContent='⚠️ 未连接后端';showApiSetup()}
-  }catch(e){document.getElementById('userDisplay').textContent='⚠️ 未连接后端';showApiSetup()}
+    if(d.loggedIn){
+      currentUser=d;
+      document.getElementById('userDisplay').textContent='👤 '+d.name;
+      document.getElementById('logoutBtn').style.display='inline';
+    }else{
+      // Auto-login
+      try{
+        const lr=await apiFetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'admin',password:'Lihua2014.'})});
+        const ld=await lr.json();
+        if(ld.ok){location.reload()}else{document.getElementById('userDisplay').textContent='⚠️ 点击设置后端'}
+      }catch(e2){document.getElementById('userDisplay').textContent='⚠️ 点击设置后端'}
+    }
+  }catch(e){
+    document.getElementById('userDisplay').textContent='⚠️ 点击设置后端';
+  }
   loadStocks();
 })();
-
-function showApiSetup(){
-  const prompt = prompt('输入后端地址（Cloudflare Tunnel URL）：\n\n例如：https://xxx.trycloudflare.com\n\n留空则使用当前地址', API_BASE);
-  if(prompt && prompt.trim()){
-    localStorage.setItem('api_base', prompt.trim());
-    API_BASE = prompt.trim();
-    location.reload();
-  }
-}
 async function loadStocks(){
   try{const r=await apiFetch('/api/cninfo/stocks');const d=await r.json();stockList=d.stockList||[];window._stockList=stockList}
   catch(e){console.log('Stock list load failed')}
@@ -266,7 +290,7 @@ async function loadStocks(){
 
 // ==================== Auth ====================
 function showLogout(){document.getElementById('logoutBtn').style.display='inline'}
-async function doLogout(){await apiFetch('/api/auth/logout');window.location.href='/login'}
+async function doLogout(){await apiFetch('/api/auth/logout');location.reload()}
 
 // ==================== Source Toggle ====================
 function toggleSource(el){

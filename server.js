@@ -78,6 +78,27 @@ function sendJSON(res, code, data, extraHeaders) {
   const h = { 'Content-Type': 'application/json; charset=utf-8', ...(extraHeaders||{}) };
   res.writeHead(code, h); res.end(JSON.stringify(data));
 }
+function sendJSONCORS(req, res, code, data, extraHeaders) {
+  const ch = corsHeaders(req);
+  const h = { ...ch, 'Content-Type': 'application/json; charset=utf-8', ...(extraHeaders||{}) };
+  res.writeHead(code, h); res.end(JSON.stringify(data));
+}
+
+// CORS origin helper — allows both GitHub Pages and tunnel domains
+const ALLOWED_ORIGINS = ['https://bdvyr26p8g-boop.github.io', 'https://upgrades-coupon-figured-ringtones.trycloudflare.com'];
+function getCORSOrigin(req) {
+  const origin = req.headers.origin || '';
+  // Allow specific origins, or fallback to the request origin for other tunnel URLs
+  if (ALLOWED_ORIGINS.includes(origin)) return origin;
+  if (origin.includes('trycloudflare.com') || origin.includes('github.io')) return origin;
+  return ALLOWED_ORIGINS[0];
+}
+function corsHeaders(req) {
+  return {
+    'Access-Control-Allow-Origin': getCORSOrigin(req),
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 function handleRegister(req, res) {
   parseBody(req).then(b => {
@@ -101,24 +122,24 @@ function handleLogin(req, res) {
   parseBody(req).then(b => {
     const { email, password } = b;
     const users = loadJSON(USERS_FILE, {});
-    if (!users[email] || users[email].password !== hashPwd(password)) return sendJSON(res, 401, { error: '邮箱或密码错误' });
+    if (!users[email] || users[email].password !== hashPwd(password)) return sendJSONCORS(req, res, 401, { error: '邮箱或密码错误' });
     const token = newToken();
     const sessions = loadJSON(SESSIONS_FILE, {});
     sessions[token] = { email, name: users[email].name, createdAt: Date.now() };
     saveJSON(SESSIONS_FILE, sessions);
-    sendJSON(res, 200, { ok: true, name: users[email].name }, { 'Set-Cookie': `token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30*24*3600}` });
+    sendJSONCORS(req, res, 200, { ok: true, name: users[email].name }, { 'Set-Cookie': `token=${token}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=${30*24*3600}` });
   });
 }
 
 function handleLogout(req, res) {
   const token = getCookie(req, 'token');
   if (token) { const s = loadJSON(SESSIONS_FILE, {}); delete s[token]; saveJSON(SESSIONS_FILE, s); }
-  sendJSON(res, 200, { ok: true }, { 'Set-Cookie': 'token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' });
+  sendJSONCORS(req, res, 200, { ok: true }, { 'Set-Cookie': 'token=; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=0' });
 }
 
 function handleSession(req, res) {
   const user = checkAuth(req);
-  sendJSON(res, 200, user ? { loggedIn: true, email: user.email, name: user.name } : { loggedIn: false });
+  sendJSONCORS(req, res, 200, user ? { loggedIn: true, email: user.email, name: user.name } : { loggedIn: false });
 }
 
 // Serve static files
@@ -172,7 +193,7 @@ function proxySearch(req, res) {
       proxyRes.on('end', () => {
         res.writeHead(proxyRes.statusCode, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(data);
       });
@@ -214,7 +235,7 @@ function proxyDetail(req, res) {
     proxyRes.on('end', () => {
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
       });
       res.end(data);
     });
@@ -252,7 +273,7 @@ function proxyHint(req, res) {
     proxyRes.on('end', () => {
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
       });
       res.end(data);
     });
@@ -300,7 +321,7 @@ function cninfoPost(apiPath, params, req, res) {
       proxyRes.on('end', () => {
         res.writeHead(proxyRes.statusCode, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(data);
       });
@@ -339,7 +360,7 @@ function cninfoGet(apiPath, req, res) {
     proxyRes.on('end', () => {
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
       });
       res.end(data);
     });
@@ -487,14 +508,14 @@ async function cninfoFulltextSearch(req, res) {
         }
         res.writeHead(proxyRes.statusCode, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(JSON.stringify(parsed));
       } catch (e) {
         // If parsing fails, return raw data
         res.writeHead(proxyRes.statusCode, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(data);
       }
@@ -603,7 +624,7 @@ function cninfoHtml5Content(req, res) {
 
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
       });
       res.end(JSON.stringify({
         title,
@@ -1038,7 +1059,7 @@ function handleTax12366Search(req, res) {
   if (!keyword) {
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify({ error: '请输入搜索关键词' }));
     return;
@@ -1076,7 +1097,7 @@ function handleTax12366Search(req, res) {
         if (!result.pageSet) {
           res.writeHead(200, {
             'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
           });
           res.end(JSON.stringify({ error: 'API返回数据异常', raw: data.substring(0, 200) }));
           return;
@@ -1119,7 +1140,7 @@ function handleTax12366Search(req, res) {
 
         res.writeHead(200, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(JSON.stringify({
           items,
@@ -1131,7 +1152,7 @@ function handleTax12366Search(req, res) {
       } catch (e) {
         res.writeHead(200, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(JSON.stringify({ error: '解析失败: ' + e.message }));
       }
@@ -1141,7 +1162,7 @@ function handleTax12366Search(req, res) {
   proxyReq.on('error', (e) => {
     res.writeHead(500, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify({ error: '请求12366失败: ' + e.message }));
   });
@@ -1150,7 +1171,7 @@ function handleTax12366Search(req, res) {
     proxyReq.destroy();
     res.writeHead(504, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify({ error: '请求12366超时' }));
   });
@@ -1242,7 +1263,7 @@ function handleTax12366Detail(req, res) {
   if (!code) {
     res.writeHead(400, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify({ error: 'Missing id parameter' }));
     return;
@@ -1251,13 +1272,13 @@ function handleTax12366Detail(req, res) {
   fetchTax12366Detail(code).then((reply) => {
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify(reply || { error: '无法获取详情' }));
   }).catch(() => {
     res.writeHead(500, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify({ error: '请求失败' }));
   });
@@ -1355,10 +1376,10 @@ async function handleInquirySearch(req, res) {
     results.sort((a, b) => b.date.localeCompare(a.date));
     const total = results.length;
 
-    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true' });
     res.end(JSON.stringify({ items: results, total, page, pageSize, exchange }));
   } catch(e) {
-    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true' });
     res.end(JSON.stringify({ items: [], total: 0, error: e.message }));
   }
 }
@@ -1427,7 +1448,7 @@ function handleEsnaiForum(req, res) {
 
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify(result));
   });
@@ -1461,7 +1482,7 @@ function handleEsnaiArticles(req, res) {
 
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify(result));
   });
@@ -1495,7 +1516,7 @@ function handleEsnaiArticle(req, res) {
 
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify(result));
   });
@@ -1775,7 +1796,7 @@ async function handleEsnaiSearch(req, res) {
 
         res.writeHead(200, {
           'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
         });
         res.end(JSON.stringify(parsed));
         return;
@@ -1917,7 +1938,7 @@ async function handleEsnaiSearch(req, res) {
 
   res.writeHead(200, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
   });
   res.end(JSON.stringify({
     results: allResults,
@@ -1957,7 +1978,7 @@ function handleEsnaiThread(req, res) {
 
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify(result));
   });
@@ -1966,14 +1987,15 @@ function handleEsnaiThread(req, res) {
 // Create server
 const server = http.createServer((req, res) => {
   const parsed = url.parse(req.url, true);
+  const corsOrigin = getCORSOrigin(req);
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    const ch = corsHeaders(req);
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+      ...ch,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Credentials': 'true',
     });
     res.end();
     return;
@@ -2044,7 +2066,7 @@ const server = http.createServer((req, res) => {
   } else if (parsed.pathname === '/api/esnai/login-status') {
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin, 'Access-Control-Allow-Credentials': 'true',
     });
     res.end(JSON.stringify({
       loggedIn: esnaiLoggedIn,
